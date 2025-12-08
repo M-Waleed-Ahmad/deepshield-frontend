@@ -1,6 +1,6 @@
 {
-    "name": "initial_frontend",
-    "short_name": "initial_frontend",
+    "name": "deepshield",
+    "short_name": "deepshield",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
