@@ -5,6 +5,7 @@ import '../../config/constants.dart';
 import '../../config/theme.dart';
 import '../../data/models/analysis_result.dart';
 import 'verdict_badge.dart';
+import 'media_preview.dart';
 
 class AnalysisCard extends StatelessWidget {
   const AnalysisCard({
@@ -28,19 +29,19 @@ class AnalysisCard extends StatelessWidget {
           color: AppColors.cardOverlay,
           borderRadius: AppRadii.card,
           boxShadow: const [AppShadows.soft],
+          border: Border.all(color: AppColors.subtle),
         ),
         child: Row(
           children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.border),
+            const SizedBox(width: AppSpacing.sm),
+            SizedBox(
+              width: 72,
+              child: MediaPreview(
+                thumbnailAsset: result.mediaItem.thumbnailAsset,
+                title: null,
+                subtitle: null,
+                compact: true,
               ),
-              alignment: Alignment.center,
-              child: const Icon(Icons.image_outlined, color: AppColors.textSecondary),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
@@ -49,7 +50,10 @@ class AnalysisCard extends StatelessWidget {
                 children: [
                   Text(
                     result.mediaTitle,
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

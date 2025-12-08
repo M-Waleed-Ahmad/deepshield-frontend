@@ -59,22 +59,32 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
         child: Column(
           children: [
             const SizedBox(height: AppSpacing.md),
-            Container(
-              height: 120,
-              width: 120,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: SweepGradient(
-                  colors: [AppColors.primary, AppColors.secondary, AppColors.primary],
-                ),
-              ),
-              child: const Center(
-                child: CircleAvatar(
-                  radius: 52,
-                  backgroundColor: AppColors.surface,
-                  child: Icon(Icons.shield_rounded, size: 40, color: AppColors.primary),
-                ),
-              ),
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.92, end: 1.0),
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.easeOutBack,
+              builder: (context, value, _) {
+                return Transform.scale(
+                  scale: value,
+                  child: Container(
+                    height: 120,
+                    width: 120,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: SweepGradient(
+                        colors: [AppColors.primary, AppColors.secondary, AppColors.primary],
+                      ),
+                    ),
+                    child: const Center(
+                      child: CircleAvatar(
+                        radius: 52,
+                        backgroundColor: AppColors.surface,
+                        child: Icon(Icons.shield_rounded, size: 40, color: AppColors.primary),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
@@ -94,53 +104,62 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.lg),
-            LinearProgressIndicator(
-              value: chainDone
-                  ? 1
-                  : reportDone
-                      ? 0.8
-                      : aiDone
-                          ? 0.6
-                          : uploadingDone
-                              ? 0.3
-                              : 0.1,
-              backgroundColor: AppColors.border,
-              color: AppColors.primary,
-              minHeight: 6,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: chainDone
+                    ? 1
+                    : reportDone
+                        ? 0.8
+                        : aiDone
+                            ? 0.6
+                            : uploadingDone
+                                ? 0.3
+                                : 0.1,
+                backgroundColor: AppColors.border,
+                color: AppColors.primary,
+                minHeight: 8,
+              ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            _stepTile(
-              icon: Icons.upload_rounded,
-              label: 'Uploading',
-              done: uploadingDone,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            _stepTile(
-              icon: Icons.psychology_alt_outlined,
-              label: 'AI Analysis',
-              done: aiDone,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            _stepTile(
-              icon: Icons.description_outlined,
-              label: 'Generating Report',
-              done: reportDone,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            _stepTile(
-              icon: Icons.shield_outlined,
-              label: 'Blockchain Anchoring',
-              done: chainDone,
-              inProgress: !chainDone,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'Do not close this window. Analysis may take up a few minutes.',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
+            Expanded(
+              child: ListView(
+                children: [
+                  _stepTile(
+                    icon: Icons.upload_rounded,
+                    label: 'Uploading',
+                    done: uploadingDone,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  _stepTile(
+                    icon: Icons.psychology_alt_outlined,
+                    label: 'AI Analysis',
+                    done: aiDone,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  _stepTile(
+                    icon: Icons.description_outlined,
+                    label: 'Generating Report',
+                    done: reportDone,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  _stepTile(
+                    icon: Icons.shield_outlined,
+                    label: 'Blockchain Anchoring',
+                    done: chainDone,
+                    inProgress: !chainDone,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Text(
+                    'Do not close this window. Analysis may take up a few minutes.',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: AppColors.textSecondary),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

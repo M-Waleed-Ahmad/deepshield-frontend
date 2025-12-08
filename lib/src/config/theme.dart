@@ -16,26 +16,96 @@ class AppColors {
   static const Color error = Color(0xFFEB5757); // Fake/Manipulated color
   static const Color border = Color(0xFF1F2A3C); // Border & outline color
   static const Color cardOverlay = Color(0xFF101624);
+  static const Color subtle = Color(0x331F2A3C);
 }
 
 /// -------------------------------
 /// APP TYPOGRAPHY
 /// -------------------------------
 class AppTextStyles {
-  static TextStyle headline(BuildContext context) =>
-      GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w600, color: AppColors.textPrimary);
-
-  static TextStyle title(BuildContext context) =>
-      GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w500, color: AppColors.textPrimary);
-
-  static TextStyle body(BuildContext context) =>
-      GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w400, color: AppColors.textPrimary);
-
-  static TextStyle caption(BuildContext context) => GoogleFonts.poppins(
-      fontSize: 12, fontWeight: FontWeight.w400, color: AppColors.textSecondary);
-
-  static TextStyle button(BuildContext context) =>
-      GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white);
+  static TextTheme textTheme = TextTheme(
+    displayLarge: GoogleFonts.poppins(
+      fontSize: 48,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -0.8,
+      height: 1.05,
+    ),
+    displayMedium: GoogleFonts.poppins(
+      fontSize: 40,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -0.6,
+      height: 1.08,
+    ),
+    displaySmall: GoogleFonts.poppins(
+      fontSize: 34,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -0.4,
+      height: 1.1,
+    ),
+    headlineLarge: GoogleFonts.poppins(
+      fontSize: 30,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -0.2,
+      height: 1.12,
+    ),
+    headlineMedium: GoogleFonts.poppins(
+      fontSize: 26,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -0.2,
+      height: 1.18,
+    ),
+    headlineSmall: GoogleFonts.poppins(
+      fontSize: 22,
+      fontWeight: FontWeight.w600,
+      letterSpacing: -0.1,
+      height: 1.2,
+    ),
+    titleLarge: GoogleFonts.poppins(
+      fontSize: 20,
+      fontWeight: FontWeight.w600,
+      height: 1.24,
+    ),
+    titleMedium: GoogleFonts.poppins(
+      fontSize: 18,
+      fontWeight: FontWeight.w500,
+      height: 1.3,
+    ),
+    titleSmall: GoogleFonts.poppins(
+      fontSize: 16,
+      fontWeight: FontWeight.w600,
+      height: 1.32,
+    ),
+    bodyLarge: GoogleFonts.poppins(
+      fontSize: 16,
+      fontWeight: FontWeight.w400,
+      height: 1.5,
+    ),
+    bodyMedium: GoogleFonts.poppins(
+      fontSize: 14,
+      fontWeight: FontWeight.w400,
+      height: 1.46,
+    ),
+    bodySmall: GoogleFonts.poppins(
+      fontSize: 12,
+      fontWeight: FontWeight.w400,
+      height: 1.4,
+    ),
+    labelLarge: GoogleFonts.poppins(
+      fontSize: 15,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.2,
+    ),
+    labelMedium: GoogleFonts.poppins(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.2,
+    ),
+    labelSmall: GoogleFonts.poppins(
+      fontSize: 11,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.4,
+    ),
+  );
 }
 
 /// -------------------------------
@@ -46,7 +116,7 @@ class AppTheme {
     brightness: Brightness.dark,
     primaryColor: AppColors.primary,
     scaffoldBackgroundColor: AppColors.background,
-    textTheme: GoogleFonts.poppinsTextTheme().apply(
+    textTheme: AppTextStyles.textTheme.apply(
       bodyColor: AppColors.textPrimary,
       displayColor: AppColors.textPrimary,
     ),
@@ -57,11 +127,7 @@ class AppTheme {
       backgroundColor: AppColors.background,
       elevation: 0,
       centerTitle: true,
-      titleTextStyle: GoogleFonts.poppins(
-        fontSize: 18,
-        fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary,
-      ),
+      titleTextStyle: AppTextStyles.textTheme.titleMedium,
       iconTheme: const IconThemeData(color: AppColors.textPrimary),
     ),
 
@@ -74,10 +140,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(14),
         ),
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-        textStyle: GoogleFonts.poppins(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-        ),
+        textStyle: AppTextStyles.textTheme.labelLarge,
       ),
     ),
 
@@ -85,8 +148,7 @@ class AppTheme {
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: AppColors.surface,
-      hintStyle: GoogleFonts.poppins(
-        fontSize: 14,
+      hintStyle: AppTextStyles.textTheme.bodyMedium?.copyWith(
         color: AppColors.textSecondary,
       ),
       border: OutlineInputBorder(

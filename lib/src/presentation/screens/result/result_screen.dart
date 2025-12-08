@@ -26,126 +26,148 @@ class ResultScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: AppSpacing.screenPadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                VerdictBadge(verdict: result.verdict),
-                const Spacer(),
-                Text(
-                  '${result.confidence.toStringAsFixed(0)}% confidence',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w600),
-                ),
-              ],
+      body: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, child) {
+          return Opacity(
+            opacity: value,
+            child: Transform.translate(
+              offset: Offset(0, (1 - value) * 12),
+              child: child,
             ),
-            const SizedBox(height: AppSpacing.lg),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: AppColors.cardOverlay,
-                borderRadius: AppRadii.card,
-                boxShadow: const [AppShadows.soft],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          );
+        },
+        child: SingleChildScrollView(
+          padding: AppSpacing.screenPadding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Text(
-                    result.mediaTitle,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    result.mediaUrl,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  ClipRRect(
-                    borderRadius: AppRadii.card,
-                    child: Container(
-                      height: 180,
-                      width: double.infinity,
-                      color: AppColors.surface,
-                      child: Center(
-                        child: Image.asset(
-                          'assets/images/logo.png',
-                          height: 100,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  ClipRRect(
-                    borderRadius: AppRadii.card,
-                    child: Container(
-                      height: 140,
-                      width: double.infinity,
-                      color: AppColors.border.withOpacity(0.2),
-                      child: SvgPicture.asset(
-                        'assets/vectors/heatmap_placeholder.svg',
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Text(
-                    result.explanation,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: AppColors.textSecondary),
+                  VerdictBadge(verdict: result.verdict),
+                  const Spacer(),
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: result.confidence),
+                    duration: const Duration(milliseconds: 900),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, value, _) {
+                      return Text(
+                        '${value.toStringAsFixed(0)}% confidence',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      );
+                    },
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            PrimaryButton(
-              label: 'View full PDF report',
-              icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
-              onPressed: () {
-                final summary = ReportSummary(
-                  result: result,
-                  mediaType: result.mediaItem.type,
-                  duration: '00:20',
-                  size: '2.4 MB',
-                  qrPlaceholderAsset: 'assets/vectors/qr_placeholder.svg',
-                  heatmapAsset: 'assets/vectors/heatmap_placeholder.svg',
-                );
-                Navigator.pushNamed(context, AppRoutes.report, arguments: summary);
-              },
-            ),
-            const SizedBox(height: AppSpacing.md),
-            PrimaryButton(
-              label: 'Verify on blockchain',
-              icon: const Icon(Icons.verified_outlined, color: Colors.white),
-              onPressed: () => _showBlockchainSheet(context),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            PrimaryButton(
-              label: 'Analyze another media',
-              icon: const Icon(Icons.replay_outlined, color: Colors.white),
-              onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                context,
-                AppRoutes.home,
-                (route) => false,
+              const SizedBox(height: AppSpacing.lg),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.cardOverlay,
+                  borderRadius: AppRadii.card,
+                  boxShadow: const [AppShadows.soft],
+                  border: Border.all(color: AppColors.subtle),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      result.mediaTitle,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      result.mediaUrl,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    ClipRRect(
+                      borderRadius: AppRadii.card,
+                      child: Container(
+                        height: 180,
+                        width: double.infinity,
+                        color: AppColors.surface,
+                        child: Center(
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            height: 100,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    ClipRRect(
+                      borderRadius: AppRadii.card,
+                      child: Container(
+                        height: 140,
+                        width: double.infinity,
+                        color: AppColors.border.withOpacity(0.2),
+                        child: SvgPicture.asset(
+                          'assets/vectors/heatmap_placeholder.svg',
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      result.explanation,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            _metadataSection(context),
-          ],
+              const SizedBox(height: AppSpacing.lg),
+              PrimaryButton(
+                label: 'View full PDF report',
+                icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
+                onPressed: () {
+                  final summary = ReportSummary(
+                    result: result,
+                    mediaType: result.mediaItem.type,
+                    duration: '00:20',
+                    size: '2.4 MB',
+                    qrPlaceholderAsset: 'assets/vectors/qr_placeholder.svg',
+                    heatmapAsset: 'assets/vectors/heatmap_placeholder.svg',
+                  );
+                  Navigator.pushNamed(context, AppRoutes.report, arguments: summary);
+                },
+              ),
+              const SizedBox(height: AppSpacing.md),
+              PrimaryButton(
+                label: 'Verify on blockchain',
+                icon: const Icon(Icons.verified_outlined, color: Colors.white),
+                onPressed: () => _showBlockchainSheet(context),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              PrimaryButton(
+                label: 'Analyze another media',
+                icon: const Icon(Icons.replay_outlined, color: Colors.white),
+                onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  AppRoutes.home,
+                  (route) => false,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              _metadataSection(context),
+            ],
+          ),
         ),
       ),
     );

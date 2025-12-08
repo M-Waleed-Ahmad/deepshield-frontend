@@ -74,10 +74,10 @@ class _HomeTabState extends State<HomeTab> {
       appBar: AppBar(
         title: Text(
           'DeepShield',
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(color: AppColors.textPrimary),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: AppColors.textPrimary,
+                letterSpacing: -0.1,
+              ),
         ),
         actions: [
           IconButton(
@@ -101,7 +101,7 @@ class _HomeTabState extends State<HomeTab> {
               'Welcome, $name!',
               style: Theme.of(context)
                   .textTheme
-                  .headlineSmall
+                  .headlineMedium
                   ?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 6),
@@ -119,7 +119,8 @@ class _HomeTabState extends State<HomeTab> {
               decoration: BoxDecoration(
                 color: AppColors.cardOverlay,
                 borderRadius: BorderRadius.circular(18),
-                boxShadow: const [AppShadows.soft],
+                boxShadow: const [AppShadows.medium],
+                border: Border.all(color: AppColors.subtle),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -161,6 +162,8 @@ class _HomeTabState extends State<HomeTab> {
                     decoration: const InputDecoration(
                       prefixIcon: Icon(Icons.link_rounded),
                       hintText: 'Paste post or reel link',
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),

@@ -72,23 +72,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 children: [
                   const SizedBox(height: AppSpacing.xl),
                   Image.asset('assets/images/logo.png', height: 90),
-                  const SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: AppSpacing.md),
                   Text(
                     'Unmasking AI-generated deception',
                     style: Theme.of(context)
                         .textTheme
-                        .headlineSmall
-                        ?.copyWith(color: AppColors.textPrimary),
+                        .titleLarge
+                        ?.copyWith(color: AppColors.textSecondary),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg, vertical: AppSpacing.xl),
                     decoration: BoxDecoration(
                       color: AppColors.cardOverlay,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: const [AppShadows.medium],
+                      border: Border.all(color: AppColors.subtle),
                     ),
                     child: Form(
                       key: _formKey,
@@ -97,7 +99,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         children: [
                           Text(
                             'Greetings',
-                            style: Theme.of(context).textTheme.headlineSmall,
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(letterSpacing: -0.2),
                           ),
                           const SizedBox(height: AppSpacing.lg),
                           TextFormField(
@@ -167,7 +172,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               return null;
                             },
                           ),
-                          const SizedBox(height: AppSpacing.lg),
+                          const SizedBox(height: AppSpacing.xl),
                           PrimaryButton(
                             label: 'Sign Up',
                             onPressed: _handleSignup,
@@ -176,29 +181,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           const SizedBox(height: AppSpacing.md),
                           Align(
                             alignment: Alignment.center,
-                            child: RichText(
-                              text: TextSpan(
+                            child: TextButton(
+                              onPressed: () => Navigator.pushReplacementNamed(
+                                  context, AppRoutes.login),
+                              child: Text(
+                                'Already have an account? Login',
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodyMedium
-                                    ?.copyWith(color: AppColors.textSecondary),
-                                children: [
-                                  const TextSpan(text: 'Already have an account? '),
-                                  WidgetSpan(
-                                    child: InkWell(
-                                      onTap: () => Navigator.pushReplacementNamed(
-                                          context, AppRoutes.login),
-                                      child: Text(
-                                        'Login',
-                                        style: TextStyle(
-                                          color: AppColors.primary,
-                                          fontWeight: FontWeight.w600,
-                                          decoration: TextDecoration.underline,
-                                        ),
-                                      ),
+                                    ?.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w600,
                                     ),
-                                  ),
-                                ],
                               ),
                             ),
                           ),

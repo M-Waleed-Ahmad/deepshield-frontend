@@ -65,23 +65,25 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   const SizedBox(height: AppSpacing.xl),
                   Image.asset('assets/images/logo.png', height: 90),
-                  const SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: AppSpacing.md),
                   Text(
                     'Unmasking AI-generated deception',
                     style: Theme.of(context)
                         .textTheme
-                        .headlineSmall
-                        ?.copyWith(color: AppColors.textPrimary),
+                        .titleLarge
+                        ?.copyWith(color: AppColors.textSecondary),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg, vertical: AppSpacing.xl),
                     decoration: BoxDecoration(
                       color: AppColors.cardOverlay,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: const [AppShadows.medium],
+                      border: Border.all(color: AppColors.subtle),
                     ),
                     child: Form(
                       key: _formKey,
@@ -90,7 +92,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         children: [
                           Text(
                             'Welcome Back',
-                            style: Theme.of(context).textTheme.headlineSmall,
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(letterSpacing: -0.2),
                           ),
                           const SizedBox(height: AppSpacing.lg),
                           TextFormField(
@@ -128,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               return null;
                             },
                           ),
-                          const SizedBox(height: AppSpacing.lg),
+                          const SizedBox(height: AppSpacing.xl),
                           PrimaryButton(
                             label: 'Login',
                             onPressed: _handleLogin,
@@ -145,29 +150,18 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SizedBox(height: AppSpacing.sm),
                           Align(
                             alignment: Alignment.center,
-                            child: RichText(
-                              text: TextSpan(
+                            child: TextButton(
+                              onPressed: () => Navigator.pushReplacementNamed(
+                                  context, AppRoutes.signup),
+                              child: Text(
+                                "Don't have an account? Sign Up",
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodyMedium
-                                    ?.copyWith(color: AppColors.textSecondary),
-                                children: [
-                                  const TextSpan(text: "Don't have an account? "),
-                                  WidgetSpan(
-                                    child: InkWell(
-                                      onTap: () => Navigator.pushReplacementNamed(
-                                          context, AppRoutes.signup),
-                                      child: Text(
-                                        'Sign Up',
-                                        style: TextStyle(
-                                          color: AppColors.primary,
-                                          fontWeight: FontWeight.w600,
-                                          decoration: TextDecoration.underline,
-                                        ),
-                                      ),
+                                    ?.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w600,
                                     ),
-                                  ),
-                                ],
                               ),
                             ),
                           ),

@@ -19,6 +19,7 @@ class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeIn;
+  late Animation<double> _scaleIn;
 
   @override
   void initState() {
@@ -30,6 +31,9 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _fadeIn = CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic);
+    _scaleIn = Tween<double>(begin: 0.9, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    );
 
     _controller.forward();
     _kickoffNavigation();
@@ -91,10 +95,21 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Image.asset(
-                      'assets/images/logo.png',
-                      height: size.height * 0.28,
-                      width: size.height * 0.28,
+                    AnimatedBuilder(
+                      animation: _controller,
+                      builder: (context, child) {
+                        return AnimatedScale(
+                          scale: _scaleIn.value,
+                          duration: const Duration(milliseconds: 1200),
+                          curve: Curves.easeOutBack,
+                          child: child,
+                        );
+                      },
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        height: size.height * 0.28,
+                        width: size.height * 0.28,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
