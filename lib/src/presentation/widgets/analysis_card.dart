@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../config/constants.dart';
-import '../../config/theme.dart';
+import '../../core/constants.dart';
+import '../../core/theme.dart';
 import '../../data/models/analysis_result.dart';
 import 'verdict_badge.dart';
 import 'media_preview.dart';

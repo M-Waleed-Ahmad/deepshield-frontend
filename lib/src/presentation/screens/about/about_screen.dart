@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../config/constants.dart';
-import '../../../config/theme.dart';
+import '../../../core/constants.dart';
+import '../../../core/theme.dart';
 
 /// Simple about screen with static copy.
 class AboutScreen extends StatelessWidget {

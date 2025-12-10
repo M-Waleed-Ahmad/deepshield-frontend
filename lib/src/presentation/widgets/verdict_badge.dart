@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../config/theme.dart';
+import '../../core/theme.dart';
 import '../../data/models/analysis_result.dart';
 
 class VerdictBadge extends StatelessWidget {

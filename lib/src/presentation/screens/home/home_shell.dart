@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../config/theme.dart';
+import '../../../core/theme.dart';
 import '../history/history_screen.dart';
 import '../settings/settings_screen.dart';
 import '../about/about_screen.dart';

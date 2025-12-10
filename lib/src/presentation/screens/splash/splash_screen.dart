@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import 'package:deepshield/src/config/theme.dart';
-import 'package:deepshield/src/config/constants.dart';
-import 'package:deepshield/src/logic/utils/service_locator.dart';
+import 'package:deepshield/src/core/theme.dart';
+import 'package:deepshield/src/core/constants.dart';
+import 'package:deepshield/src/core/utils/service_locator.dart';
 import 'package:deepshield/src/routes/app_router.dart';
 
 /// Splash screen with simple animation then navigation to auth/home.

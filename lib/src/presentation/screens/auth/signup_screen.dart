@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../config/constants.dart';
-import '../../../config/theme.dart';
-import '../../../logic/utils/service_locator.dart';
+import '../../../core/constants.dart';
+import '../../../core/theme.dart';
+import '../../../core/utils/service_locator.dart';
 import '../../widgets/loading_overlay.dart';
 import '../../widgets/primary_button.dart';
 import '../../../routes/app_router.dart';

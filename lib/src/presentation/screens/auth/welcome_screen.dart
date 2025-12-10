@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../config/constants.dart';
-import '../../../config/theme.dart';
+import '../../../core/constants.dart';
+import '../../../core/theme.dart';
 import '../../widgets/primary_button.dart';
 import '../../../routes/app_router.dart';
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-import 'package:deepshield/src/config/theme.dart';
+import 'package:deepshield/src/core/theme.dart';
 import 'package:deepshield/src/presentation/screens/splash/splash_screen.dart';
 import 'package:deepshield/src/routes/app_router.dart';
 
