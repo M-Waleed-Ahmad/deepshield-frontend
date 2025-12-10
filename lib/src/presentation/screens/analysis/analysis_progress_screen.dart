@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants.dart';
 import '../../../core/theme.dart';
-import '../../../data/models/media_item.dart';
 import '../../../core/utils/service_locator.dart';
 import '../../../routes/app_router.dart';
+import '../../../data/models/deepfake_request.dart';
 
-/// Animated analysis status screen using simulated analysis service.
+/// Animated analysis status screen that calls the deepfake backend.
 class AnalysisProgressScreen extends StatefulWidget {
-  const AnalysisProgressScreen({super.key, required this.media});
+  const AnalysisProgressScreen({super.key, required this.request});
 
-  final MediaItem media;
+  final DeepfakeRequest request;
 
   @override
   State<AnalysisProgressScreen> createState() => _AnalysisProgressScreenState();
@@ -21,6 +21,8 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
   bool aiDone = false;
   bool reportDone = false;
   bool chainDone = false;
+  bool hasError = false;
+  String? errorMessage;
 
   @override
   void initState() {
@@ -29,23 +31,39 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
   }
 
   Future<void> _runAnalysis() async {
-    await Future.delayed(const Duration(milliseconds: 600));
-    setState(() => uploadingDone = true);
-    await Future.delayed(const Duration(milliseconds: 500));
-    setState(() => aiDone = true);
-    await Future.delayed(const Duration(milliseconds: 400));
-    setState(() => reportDone = true);
+    try {
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (!mounted) return;
+      setState(() => uploadingDone = true);
 
-    final result =
-        await ServiceLocator.fakeAnalysisService.analyzeMedia(widget.media);
-    setState(() => chainDone = true);
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+      setState(() => aiDone = true);
 
-    if (!mounted) return;
-    Navigator.pushReplacementNamed(
-      context,
-      AppRoutes.result,
-      arguments: result,
-    );
+      await Future.delayed(const Duration(milliseconds: 400));
+      if (!mounted) return;
+      setState(() => reportDone = true);
+
+      final result =
+          await ServiceLocator.deepfakeService.analyze(widget.request);
+      if (!mounted) return;
+      setState(() => chainDone = true);
+
+      Navigator.pushReplacementNamed(
+        context,
+        AppRoutes.result,
+        arguments: result,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        hasError = true;
+        errorMessage = e.toString();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Analysis failed: ${e.toString()}')),
+      );
+    }
   }
 
   @override
@@ -158,6 +176,22 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
                         ?.copyWith(color: AppColors.textSecondary),
                     textAlign: TextAlign.center,
                   ),
+                  if (hasError) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      errorMessage ?? 'Something went wrong.',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: Colors.redAccent),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Go back'),
+                    ),
+                  ],
                 ],
               ),
             ),

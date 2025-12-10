@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../data/models/analysis_result.dart';
-import '../data/models/media_item.dart';
 import '../data/models/report_summary.dart';
+import '../data/models/deepfake_request.dart';
 import '../presentation/screens/analysis/analysis_progress_screen.dart';
 import '../presentation/screens/auth/login_screen.dart';
 import '../presentation/screens/auth/signup_screen.dart';
@@ -37,9 +37,9 @@ class AppRouter {
       case AppRoutes.home:
         return MaterialPageRoute(builder: (_) => const HomeShell());
       case AppRoutes.analysisProgress:
-        final media = settings.arguments as MediaItem;
+        final media = settings.arguments as DeepfakeRequest;
         return MaterialPageRoute(
-          builder: (_) => AnalysisProgressScreen(media: media),
+          builder: (_) => AnalysisProgressScreen(request: media),
         );
       case AppRoutes.result:
         final result = settings.arguments as AnalysisResult;

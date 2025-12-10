@@ -16,6 +16,14 @@ class AnalysisResult {
     required this.blockchainHash,
     required this.explanation,
     required this.mediaItem,
+    this.detector,
+    this.probFake,
+    this.probReal,
+    this.audioMean,
+    this.audioMax,
+    this.audioHighFreq,
+    this.audioFrames,
+    this.rawLabel,
   });
 
   final String id;
@@ -27,6 +35,14 @@ class AnalysisResult {
   final String blockchainHash;
   final String explanation;
   final MediaItem mediaItem;
+  final String? detector;
+  final double? probFake;
+  final double? probReal;
+  final double? audioMean;
+  final double? audioMax;
+  final double? audioHighFreq;
+  final int? audioFrames;
+  final String? rawLabel;
 
   String get verdictLabel {
     switch (verdict) {

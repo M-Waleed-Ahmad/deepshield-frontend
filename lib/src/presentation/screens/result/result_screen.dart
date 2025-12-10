@@ -122,6 +122,18 @@ class ResultScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
+                    if (_hasMetrics) ...[
+                      Text(
+                        'Detection metrics',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      ..._buildMetrics(context),
+                      const SizedBox(height: AppSpacing.md),
+                    ],
                     Text(
                       result.explanation,
                       style: Theme.of(context)
@@ -257,5 +269,43 @@ class ResultScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  bool get _hasMetrics =>
+      result.detector != null ||
+      result.probFake != null ||
+      result.probReal != null ||
+      result.audioMean != null ||
+      result.audioMax != null ||
+      result.audioHighFreq != null ||
+      result.audioFrames != null ||
+      result.rawLabel != null;
+
+  List<Widget> _buildMetrics(BuildContext context) {
+    final items = <Widget>[];
+    void add(String label, String value) =>
+        items.add(_metaRow(label, value));
+
+    if (result.rawLabel != null) add('Label', result.rawLabel!);
+    if (result.detector != null) add('Detector', result.detector!);
+    if (result.probFake != null) {
+      add('Prob fake', '${(result.probFake! * 100).toStringAsFixed(1)}%');
+    }
+    if (result.probReal != null) {
+      add('Prob real', '${(result.probReal! * 100).toStringAsFixed(1)}%');
+    }
+    if (result.audioMean != null) {
+      add('p_mean', result.audioMean!.toStringAsFixed(4));
+    }
+    if (result.audioMax != null) {
+      add('p_max', result.audioMax!.toStringAsFixed(4));
+    }
+    if (result.audioHighFreq != null) {
+      add('f_high', result.audioHighFreq!.toStringAsFixed(4));
+    }
+    if (result.audioFrames != null) {
+      add('Frames analyzed', '${result.audioFrames}');
+    }
+    return items;
   }
 }

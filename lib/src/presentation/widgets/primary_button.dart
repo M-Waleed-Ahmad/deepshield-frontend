@@ -27,19 +27,28 @@ class PrimaryButton extends StatelessWidget {
             height: 20,
             child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
           )
-        : Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                icon!,
-                const SizedBox(width: 8),
+        : Flexible(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  icon!,
+                  const SizedBox(width: 8),
+                ],
+                Flexible(
+                  child: Text(
+                    label,
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelLarge
+                        ?.copyWith(color: Colors.white),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
               ],
-              Text(
-                label,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Colors.white),
-              ),
-            ],
+            ),
           );
 
     return SizedBox(
@@ -53,7 +62,11 @@ class PrimaryButton extends StatelessWidget {
             shadowColor: AppColors.primary.withOpacity(0.35),
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
           ),
-          child: content,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [content],
+          ),
         ),
       ),
     );

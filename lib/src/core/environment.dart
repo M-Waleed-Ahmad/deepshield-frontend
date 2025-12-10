@@ -18,7 +18,7 @@ class Environment {
 
   /// AI / Deepfake Detection Service
   static final String aiServiceUrl =
-      dotenv.env['AI_SERVICE_URL'] ?? 'https://ai.deepshield.com';
+      dotenv.env['AI_SERVICE_URL'] ?? 'http://localhost:8000';
   static final String aiApiKey = dotenv.env['AI_API_KEY'] ?? '';
 
   /// Blockchain / Polygon Integration

@@ -1,13 +1,15 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants.dart';
 import '../../../core/theme.dart';
 import '../../../data/models/media_item.dart';
+import '../../../data/models/deepfake_request.dart';
 import '../../../core/utils/service_locator.dart';
 import '../../../routes/app_router.dart';
 import '../../widgets/primary_button.dart';
 
-/// Main verification screen. Uses simulated upload/link input.
+/// Main verification screen. Uses local file upload to call deepfake APIs.
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
 
@@ -16,55 +18,62 @@ class HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<HomeTab> {
-  final _linkCtrl = TextEditingController();
-  MediaItem? _selectedMedia;
+  String? _filePath;
+  String? _fileName;
+  bool _isPicking = false;
 
-  @override
-  void dispose() {
-    _linkCtrl.dispose();
-    super.dispose();
-  }
+  Future<void> _pickFile() async {
+    setState(() => _isPicking = true);
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: false,
+      type: FileType.media,
+    );
+    setState(() => _isPicking = false);
 
-  void _simulateUpload() {
+    if (result == null || result.files.single.path == null) {
+      return;
+    }
+
     setState(() {
-      _selectedMedia = MediaItem(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        title: 'Uploaded media',
-        url: 'local-upload://placeholder',
-        type: 'image',
-        thumbnailAsset: 'assets/images/logo.png',
-      );
+      _filePath = result.files.single.path!;
+      _fileName = result.files.single.name;
     });
   }
 
   void _startAnalysis() {
-    final url = _linkCtrl.text.trim();
-    if (_selectedMedia == null && url.isEmpty) {
+    if (_filePath == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Upload media or paste a link to analyze.')),
-      );
-      return;
-    }
-    if (url.isNotEmpty && !url.startsWith('http')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid URL starting with http/https.')),
+        const SnackBar(content: Text('Upload a file to analyze.')),
       );
       return;
     }
 
-    final media = _selectedMedia ??
-        MediaItem(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          title: 'Instagram Link',
-          url: url,
-          type: 'link',
-        );
+    final isVideo = _isVideoFile(_filePath!);
+    final media = MediaItem(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: _fileName ?? 'Uploaded media',
+      url: _filePath!,
+      type: isVideo ? 'video' : 'image',
+      thumbnailAsset: 'assets/images/logo.png',
+    );
+
+    final request = DeepfakeRequest(
+      filePath: _filePath!,
+      mediaType: isVideo ? 'video' : 'image',
+      mediaTitle: media.title,
+    );
 
     Navigator.pushNamed(
       context,
       AppRoutes.analysisProgress,
-      arguments: media,
+      arguments: request,
     );
+  }
+
+  bool _isVideoFile(String path) {
+    final lower = path.toLowerCase();
+    const videoExts = ['.mp4', '.mov', '.mkv', '.avi', '.wmv', '.flv'];
+    return videoExts.any((ext) => lower.endsWith(ext));
   }
 
   @override
@@ -126,9 +135,13 @@ class _HomeTabState extends State<HomeTab> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   PrimaryButton(
-                    label: _selectedMedia != null ? 'Media Selected' : 'Upload Media',
+                    label: _filePath != null
+                        ? 'File Selected: ${_fileName ?? 'Unnamed'}'
+                        : _isPicking
+                            ? 'Picking...'
+                            : 'Upload Media',
                     icon: const Icon(Icons.cloud_upload_outlined, color: Colors.white),
-                    onPressed: _simulateUpload,
+                    onPressed: _isPicking ? null : _pickFile,
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
@@ -139,42 +152,15 @@ class _HomeTabState extends State<HomeTab> {
                         ?.copyWith(color: AppColors.textSecondary),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                  Row(
-                    children: [
-                      const Expanded(child: Divider(color: AppColors.border)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          'OR',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: AppColors.textSecondary),
-                        ),
-                      ),
-                      const Expanded(child: Divider(color: AppColors.border)),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextField(
-                    controller: _linkCtrl,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.link_rounded),
-                      hintText: 'Paste post or reel link',
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                    ),
-                  ),
                   const SizedBox(height: AppSpacing.md),
                   PrimaryButton(
-                    label: 'Analyze Link',
+                    label: 'Analyze File',
                     icon: const Icon(Icons.search, color: Colors.white),
                     onPressed: _startAnalysis,
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    'Enter a valid Instagram URL for verification.',
+                    'We send the image/video to your local backend (localhost:8000) at /deepfake/image.',
                     style: Theme.of(context)
                         .textTheme
                         .bodySmall
