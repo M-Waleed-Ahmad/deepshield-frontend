@@ -21,6 +21,35 @@ class _HomeTabState extends State<HomeTab> {
   String? _filePath;
   String? _fileName;
   bool _isPicking = false;
+  
+  bool _isHealthy = false;
+  bool _healthCheckDone = false;
+  String _healthMessage = 'Checking backend connection...';
+
+  @override
+  void initState() {
+    super.initState();
+    _checkHealth();
+  }
+
+  Future<void> _checkHealth() async {
+    try {
+      await ServiceLocator.deepfakeService.checkHealth();
+      if (!mounted) return;
+      setState(() {
+        _isHealthy = true;
+        _healthMessage = 'Backend connected';
+        _healthCheckDone = true;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isHealthy = false;
+        _healthMessage = 'Backend unreachable — analysis unavailable';
+        _healthCheckDone = true;
+      });
+    }
+  }
 
   Future<void> _pickFile() async {
     setState(() => _isPicking = true);
@@ -79,6 +108,8 @@ class _HomeTabState extends State<HomeTab> {
   @override
   Widget build(BuildContext context) {
     final name = ServiceLocator.appState.userName;
+    final canUpload = _healthCheckDone && _isHealthy;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -122,6 +153,38 @@ class _HomeTabState extends State<HomeTab> {
                   ?.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: AppSpacing.lg),
+            
+            // Health indicator
+            if (_healthCheckDone)
+              Container(
+                margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: _isHealthy ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _isHealthy ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _isHealthy ? Icons.check_circle_outline : Icons.error_outline,
+                      color: _isHealthy ? Colors.green : Colors.red,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _healthMessage,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: _isHealthy ? Colors.green : Colors.red,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(AppSpacing.lg),
@@ -141,7 +204,7 @@ class _HomeTabState extends State<HomeTab> {
                             ? 'Picking...'
                             : 'Upload Media',
                     icon: const Icon(Icons.cloud_upload_outlined, color: Colors.white),
-                    onPressed: _isPicking ? null : _pickFile,
+                    onPressed: (_isPicking || !canUpload) ? null : _pickFile,
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
@@ -160,7 +223,7 @@ class _HomeTabState extends State<HomeTab> {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    'We send the image/video to your local backend (localhost:8000) at /deepfake/image.',
+                    'We securely transmit your media to our powerful backend analysis engine.',
                     style: Theme.of(context)
                         .textTheme
                         .bodySmall
@@ -176,3 +239,4 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 }
+

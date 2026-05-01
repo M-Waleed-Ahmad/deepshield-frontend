@@ -56,18 +56,23 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
       );
     } catch (e) {
       if (!mounted) return;
+      
+      final rawError = e.toString();
+      final displayError = rawError.startsWith('Exception: ') 
+          ? rawError.substring('Exception: '.length) 
+          : rawError;
+
       setState(() {
         hasError = true;
-        errorMessage = e.toString();
+        errorMessage = displayError;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Analysis failed: ${e.toString()}')),
-      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isVideo = widget.request.mediaType.toLowerCase() == 'video';
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Content Analysis'),
@@ -114,7 +119,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Please wait while we verify authenticity...',
+              isVideo ? 'Analyzing video — this may take a moment...' : 'Analyzing image...',
               style: Theme.of(context)
                   .textTheme
                   .bodyMedium
@@ -227,7 +232,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
           ),
           if (done)
             const Icon(Icons.check_circle, color: Colors.greenAccent)
-          else if (inProgress)
+          else if (inProgress && !hasError)
             const SizedBox(
               width: 20,
               height: 20,
@@ -238,3 +243,4 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
     );
   }
 }
+

@@ -20,15 +20,21 @@ class FakeAnalysisService {
 
     final result = AnalysisResult(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
-      mediaTitle: media.title,
-      mediaUrl: media.url,
+      prediction: verdict.name,
       confidence: confidence.clamp(0, 100),
-      verdict: verdict,
+      band: 'all',
+      type: 'video',
       createdAt: DateTime.now(),
+      mediaItem: media,
+      processingTimeSeconds: 2.0,
+      filename: media.title,
+      isDuplicate: false,
+      priorAnalyses: [],
       blockchainHash: _fakeHash(),
       explanation:
           'Our model detected subtle frame inconsistencies suggesting possible manipulation. This is simulated data for MVP.',
-      mediaItem: media,
+      mediaTitle: media.title,
+      mediaUrl: media.url,
     );
 
     historyService.addResult(result);

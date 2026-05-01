@@ -2,67 +2,136 @@ import 'package:flutter/material.dart';
 
 import 'media_item.dart';
 
-/// Simulated analysis result model for the DeepShield MVP.
 enum Verdict { authentic, suspected, inconclusive }
+
+class PriorAnalysis {
+  PriorAnalysis({
+    required this.id,
+    required this.prediction,
+    required this.confidence,
+    required this.band,
+    required this.createdAt,
+    this.heatmapUrl,
+  });
+
+  final String id;
+  final String prediction;
+  final double confidence;
+  final String band;
+  final DateTime createdAt;
+  final String? heatmapUrl;
+
+  factory PriorAnalysis.fromJson(Map<String, dynamic> json) {
+    return PriorAnalysis(
+      id: json['id'] as String? ?? '',
+      prediction: json['prediction'] as String? ?? 'Unknown',
+      confidence: (json['confidence'] as num?)?.toDouble() ?? 0.0,
+      band: json['band'] as String? ?? 'Unknown',
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at'] as String).toLocal()
+          : DateTime.now(),
+      heatmapUrl: json['heatmap_url'] as String?,
+    );
+  }
+}
 
 class AnalysisResult {
   AnalysisResult({
     required this.id,
-    required this.mediaTitle,
-    required this.mediaUrl,
+    required this.prediction,
     required this.confidence,
-    required this.verdict,
+    required this.band,
+    required this.type,
     required this.createdAt,
-    required this.blockchainHash,
-    required this.explanation,
     required this.mediaItem,
-    this.detector,
-    this.probFake,
-    this.probReal,
-    this.audioMean,
-    this.audioMax,
-    this.audioHighFreq,
-    this.audioFrames,
-    this.rawLabel,
+    required this.processingTimeSeconds,
+    required this.filename,
+    required this.isDuplicate,
+    required this.priorAnalyses,
+    this.heatmapUrl,
+    this.thresholds,
+    this.details,
+    // Keep old fields to prevent compilation errors temporarily
+    this.mediaTitle = '',
+    this.mediaUrl = '',
+    this.blockchainHash = '',
+    this.explanation = '',
   });
 
   final String id;
+  final String prediction;
+  final double confidence; // e.g. 0.812 means 81.2% or could be just used directly. We will assume 0.812 from backend -> 81.2% in UI
+  final String band;
+  final String type;
+  final String? heatmapUrl;
+  final Map<String, dynamic>? thresholds;
+  final Map<String, dynamic>? details;
+  final double processingTimeSeconds;
+  final String filename;
+  final bool isDuplicate;
+  final List<PriorAnalysis> priorAnalyses;
+  final DateTime createdAt;
+  final MediaItem mediaItem;
+
+  // Legacy fields (optional / defaults)
   final String mediaTitle;
   final String mediaUrl;
-  final double confidence;
-  final Verdict verdict;
-  final DateTime createdAt;
   final String blockchainHash;
   final String explanation;
-  final MediaItem mediaItem;
-  final String? detector;
-  final double? probFake;
-  final double? probReal;
-  final double? audioMean;
-  final double? audioMax;
-  final double? audioHighFreq;
-  final int? audioFrames;
-  final String? rawLabel;
 
-  String get verdictLabel {
-    switch (verdict) {
-      case Verdict.authentic:
-        return 'Authentic';
-      case Verdict.suspected:
-        return 'Suspected Manipulation';
-      case Verdict.inconclusive:
-        return 'Inconclusive';
-    }
+  Verdict get verdict {
+    final lower = prediction.toLowerCase();
+    if (lower.contains('manipulated') || lower.contains('ai-generated')) return Verdict.suspected;
+    if (lower.contains('authentic')) return Verdict.authentic;
+    return Verdict.inconclusive;
   }
 
+  String get verdictLabel => prediction;
+
   Color get verdictColor {
-    switch (verdict) {
-      case Verdict.authentic:
-        return Colors.greenAccent;
-      case Verdict.suspected:
-        return Colors.redAccent;
-      case Verdict.inconclusive:
-        return Colors.amberAccent;
+    final b = band.toLowerCase();
+    if (b.contains('real')) return Colors.greenAccent;
+    if (b.contains('unsure')) return Colors.yellowAccent;
+    if (b.contains('likely fake')) return Colors.orangeAccent;
+    if (b.contains('strong fake')) return Colors.redAccent;
+    return Colors.amberAccent; // default fallback
+  }
+
+  factory AnalysisResult.fromJson(Map<String, dynamic> json, MediaItem media) {
+    var analysesList = <PriorAnalysis>[];
+    if (json['prior_analyses'] != null) {
+      final list = json['prior_analyses'] as List;
+      analysesList = list.map((e) => PriorAnalysis.fromJson(e)).toList();
     }
+
+    return AnalysisResult(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      prediction: json['prediction'] as String? ?? 'Unknown',
+      confidence: (json['confidence'] as num?)?.toDouble() ?? 0.0,
+      band: json['band'] as String? ?? 'Unknown',
+      type: json['type'] as String? ?? media.type,
+      heatmapUrl: json['heatmap_url'] as String?,
+      thresholds: json['thresholds'] as Map<String, dynamic>?,
+      details: json['details'] as Map<String, dynamic>?,
+      processingTimeSeconds: (json['processing_time_seconds'] as num?)?.toDouble() ?? 0.0,
+      filename: json['filename'] as String? ?? media.title,
+      isDuplicate: json['is_duplicate'] as bool? ?? false,
+      priorAnalyses: analysesList,
+      createdAt: DateTime.now(),
+      mediaItem: media,
+      mediaTitle: media.title,
+      mediaUrl: media.url,
+      blockchainHash: _fakeHash(),
+      explanation: 'Analysis processed in ${(json['processing_time_seconds'] as num?)?.toDouble() ?? 0.0} seconds.',
+    );
+  }
+
+  static String _fakeHash() {
+    const chars = 'abcdef0123456789';
+    final rand = DateTime.now().microsecondsSinceEpoch;
+    return List.generate(
+      64,
+      (index) => chars[(rand + index) % chars.length],
+    ).join();
   }
 }

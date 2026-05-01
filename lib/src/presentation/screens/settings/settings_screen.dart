@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/constants.dart';
 import '../../../core/theme.dart';
 import '../../../core/utils/service_locator.dart';
 import '../../../routes/app_router.dart';
 import '../../widgets/primary_button.dart';
+import '../../../data/models/health_status.dart';
 
 /// Settings/Profile screen with fake data and logout.
 class SettingsScreen extends StatefulWidget {
@@ -17,6 +19,33 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool notificationsEnabled = true;
   bool darkMode = true;
+
+  HealthStatus? _healthStatus;
+  bool _isLoadingHealth = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHealth();
+  }
+
+  Future<void> _fetchHealth() async {
+    setState(() => _isLoadingHealth = true);
+    try {
+      final status = await ServiceLocator.deepfakeService.checkHealth();
+      if (!mounted) return;
+      setState(() {
+        _healthStatus = status;
+        _isLoadingHealth = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _healthStatus = null;
+        _isLoadingHealth = false;
+      });
+    }
+  }
 
   Future<void> _logout() async {
     await ServiceLocator.appState.logout();
@@ -94,6 +123,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (value) => setState(() => darkMode = value),
               ),
             ),
+            
+            const SizedBox(height: AppSpacing.lg),
+            Text('Backend Status', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: AppSpacing.sm),
+            _buildHealthCard(),
+
             const SizedBox(height: AppSpacing.lg),
             Text('About DeepShield', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: AppSpacing.sm),
@@ -106,7 +141,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 border: Border.all(color: AppColors.border),
               ),
               child: Text(
-                'DeepShield detects AI-generated forgeries and anchors reports on-chain for verification. This build uses simulated data only.',
+                'DeepShield detects AI-generated forgeries and anchors reports on-chain for verification. This build consumes the locally running FastAPI backend.',
                 style: Theme.of(context)
                     .textTheme
                     .bodyMedium
@@ -121,6 +156,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHealthCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.cardOverlay,
+        borderRadius: AppRadii.card,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_isLoadingHealth)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_healthStatus == null)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Backend unreachable', style: TextStyle(color: Colors.red)),
+                TextButton(
+                  onPressed: _fetchHealth,
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 0)),
+                  child: const Text('Retry')
+                )
+              ],
+            )
+          else ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                    const SizedBox(width: 6),
+                    Text('Status: ${_healthStatus!.status}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  ]
+                ),
+                TextButton(
+                  onPressed: _fetchHealth,
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 0)),
+                  child: const Text('Re-check')
+                )
+              ],
+            ),
+            const SizedBox(height: 8),
+            _metaRow('UCF Model', _healthStatus!.ucfLoaded ? 'Loaded' : 'Not Loaded'),
+            _metaRow('Xception Model', _healthStatus!.xceptionLoaded ? 'Loaded' : 'Not Loaded'),
+            _metaRow('AI Service', _healthStatus!.aiService),
+            _metaRow('Last Checked', DateFormat('h:mm:ss a').format(_healthStatus!.lastChecked!)),
+          ]
+        ],
       ),
     );
   }
@@ -158,4 +251,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+
+  Widget _metaRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              textAlign: TextAlign.right,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
+

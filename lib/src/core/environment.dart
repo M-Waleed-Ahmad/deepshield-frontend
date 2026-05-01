@@ -16,10 +16,10 @@ class Environment {
   static final String supabaseAnonKey =
       dotenv.env['SUPABASE_ANON_KEY'] ?? 'your-anon-key';
 
-  /// AI / Deepfake Detection Service
-  static final String aiServiceUrl =
-      dotenv.env['AI_SERVICE_URL'] ?? 'http://localhost:8000';
-  static final String aiApiKey = dotenv.env['AI_API_KEY'] ?? '';
+    // AI / Deepfake Detection Service
+    static final String aiServiceUrl =
+        dotenv.env['DEEPSHIELD_API_URL'] ?? 'http://localhost:8000';
+    static final String aiApiKey = dotenv.env['AI_API_KEY'] ?? '';
 
   /// Blockchain / Polygon Integration
   static final String blockchainRpcUrl =
