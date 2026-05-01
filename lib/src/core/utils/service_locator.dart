@@ -1,24 +1,26 @@
-import '../../data/services/auth_service.dart';
-import '../../data/services/bootstrap_service.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../services/auth_service.dart';
+import '../../../services/auth_storage.dart';
 import '../../data/services/fake_analysis_service.dart';
 import '../../data/services/history_service.dart';
 import '../../data/services/deepfake_service.dart';
-import '../app_state.dart';
 
 /// Simple manual service locator for the MVP.
 class ServiceLocator {
   ServiceLocator._();
 
   static final authService = AuthService();
-  static final bootstrapService =
-      BootstrapService(authService: authService);
-  static final historyService = HistoryService();
-  static final fakeAnalysisService =
-      FakeAnalysisService(historyService: historyService);
-  static final deepfakeService =
-      DeepfakeService(historyService: historyService);
-  static final appState = AppState(
+  static final authStorage = AuthStorage();
+  static final authProvider = AuthProvider(
     authService: authService,
-    bootstrapService: bootstrapService,
+    authStorage: authStorage,
+  );
+  static final historyService = HistoryService();
+  static final fakeAnalysisService = FakeAnalysisService(
+    historyService: historyService,
+  );
+  static final deepfakeService = DeepfakeService(
+    historyService: historyService,
+    authProvider: authProvider,
   );
 }

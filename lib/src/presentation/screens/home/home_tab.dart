@@ -21,7 +21,7 @@ class _HomeTabState extends State<HomeTab> {
   String? _filePath;
   String? _fileName;
   bool _isPicking = false;
-  
+
   bool _isHealthy = false;
   bool _healthCheckDone = false;
   String _healthMessage = 'Checking backend connection...';
@@ -107,7 +107,7 @@ class _HomeTabState extends State<HomeTab> {
 
   @override
   Widget build(BuildContext context) {
-    final name = ServiceLocator.appState.userName;
+    final name = ServiceLocator.authProvider.userDisplayName;
     final canUpload = _healthCheckDone && _isHealthy;
 
     return Scaffold(
@@ -115,9 +115,9 @@ class _HomeTabState extends State<HomeTab> {
         title: Text(
           'DeepShield',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: AppColors.textPrimary,
-                letterSpacing: -0.1,
-              ),
+            color: AppColors.textPrimary,
+            letterSpacing: -0.1,
+          ),
         ),
         actions: [
           IconButton(
@@ -139,35 +139,44 @@ class _HomeTabState extends State<HomeTab> {
           children: [
             Text(
               'Welcome, $name!',
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 6),
             Text(
               'Verify content authenticity with cutting-edge AI.',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: AppColors.textSecondary),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: AppSpacing.lg),
-            
+
             // Health indicator
             if (_healthCheckDone)
               Container(
                 margin: const EdgeInsets.only(bottom: AppSpacing.md),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
-                  color: _isHealthy ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                  color: _isHealthy
+                      ? Colors.green.withOpacity(0.1)
+                      : Colors.red.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: _isHealthy ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3)),
+                  border: Border.all(
+                    color: _isHealthy
+                        ? Colors.green.withOpacity(0.3)
+                        : Colors.red.withOpacity(0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
                     Icon(
-                      _isHealthy ? Icons.check_circle_outline : Icons.error_outline,
+                      _isHealthy
+                          ? Icons.check_circle_outline
+                          : Icons.error_outline,
                       color: _isHealthy ? Colors.green : Colors.red,
                       size: 20,
                     ),
@@ -176,9 +185,9 @@ class _HomeTabState extends State<HomeTab> {
                       child: Text(
                         _healthMessage,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: _isHealthy ? Colors.green : Colors.red,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: _isHealthy ? Colors.green : Colors.red,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
@@ -201,18 +210,20 @@ class _HomeTabState extends State<HomeTab> {
                     label: _filePath != null
                         ? 'File Selected: ${_fileName ?? 'Unnamed'}'
                         : _isPicking
-                            ? 'Picking...'
-                            : 'Upload Media',
-                    icon: const Icon(Icons.cloud_upload_outlined, color: Colors.white),
+                        ? 'Picking...'
+                        : 'Upload Media',
+                    icon: const Icon(
+                      Icons.cloud_upload_outlined,
+                      color: Colors.white,
+                    ),
                     onPressed: (_isPicking || !canUpload) ? null : _pickFile,
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
                     'Supports images and videos from your device gallery.',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: AppColors.textSecondary),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -224,10 +235,9 @@ class _HomeTabState extends State<HomeTab> {
                   const SizedBox(height: AppSpacing.sm),
                   Text(
                     'We securely transmit your media to our powerful backend analysis engine.',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: AppColors.textSecondary),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -239,4 +249,3 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 }
-

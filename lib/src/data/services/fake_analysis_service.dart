@@ -43,6 +43,9 @@ class FakeAnalysisService {
 
   String _fakeHash() {
     const chars = 'abcdef0123456789';
-    return List.generate(64, (_) => chars[_random.nextInt(chars.length)]).join();
+    return List.generate(
+      64,
+      (_) => chars[_random.nextInt(chars.length)],
+    ).join();
   }
 }

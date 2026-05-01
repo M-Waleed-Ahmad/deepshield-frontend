@@ -48,7 +48,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _logout() async {
-    await ServiceLocator.appState.logout();
+    await ServiceLocator.authProvider.logout();
     if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(
       context,
@@ -59,7 +59,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final appState = ServiceLocator.appState;
+    final authProvider = ServiceLocator.authProvider;
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: SingleChildScrollView(
@@ -86,20 +86,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(appState.userName,
-                          style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        authProvider.userDisplayName,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       const SizedBox(height: 4),
                       Text(
-                        appState.userEmail.isNotEmpty
-                            ? appState.userEmail
+                        (authProvider.userEmail ?? '').isNotEmpty
+                            ? authProvider.userEmail!
                             : 'user@deepshield.app',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: AppColors.textSecondary),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
-                  )
+                  ),
                 ],
               ),
             ),
@@ -123,14 +124,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (value) => setState(() => darkMode = value),
               ),
             ),
-            
+
             const SizedBox(height: AppSpacing.lg),
-            Text('Backend Status', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Backend Status',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: AppSpacing.sm),
             _buildHealthCard(),
 
             const SizedBox(height: AppSpacing.lg),
-            Text('About DeepShield', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'About DeepShield',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: AppSpacing.sm),
             Container(
               width: double.infinity,
@@ -142,10 +149,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               child: Text(
                 'DeepShield detects AI-generated forgeries and anchors reports on-chain for verification. This build consumes the locally running FastAPI backend.',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: AppColors.textSecondary),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -181,12 +187,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Backend unreachable', style: TextStyle(color: Colors.red)),
+                const Text(
+                  'Backend unreachable',
+                  style: TextStyle(color: Colors.red),
+                ),
                 TextButton(
                   onPressed: _fetchHealth,
-                  style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 0)),
-                  child: const Text('Retry')
-                )
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 0),
+                  ),
+                  child: const Text('Retry'),
+                ),
               ],
             )
           else ...[
@@ -195,24 +207,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                    const Icon(
+                      Icons.check_circle,
+                      color: Colors.green,
+                      size: 20,
+                    ),
                     const SizedBox(width: 6),
-                    Text('Status: ${_healthStatus!.status}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                  ]
+                    Text(
+                      'Status: ${_healthStatus!.status}',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ],
                 ),
                 TextButton(
                   onPressed: _fetchHealth,
-                  style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 0)),
-                  child: const Text('Re-check')
-                )
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 0),
+                  ),
+                  child: const Text('Re-check'),
+                ),
               ],
             ),
             const SizedBox(height: 8),
-            _metaRow('UCF Model', _healthStatus!.ucfLoaded ? 'Loaded' : 'Not Loaded'),
-            _metaRow('Xception Model', _healthStatus!.xceptionLoaded ? 'Loaded' : 'Not Loaded'),
+            _metaRow(
+              'UCF Model',
+              _healthStatus!.ucfLoaded ? 'Loaded' : 'Not Loaded',
+            ),
+            _metaRow(
+              'Xception Model',
+              _healthStatus!.xceptionLoaded ? 'Loaded' : 'Not Loaded',
+            ),
             _metaRow('AI Service', _healthStatus!.aiService),
-            _metaRow('Last Checked', DateFormat('h:mm:ss a').format(_healthStatus!.lastChecked!)),
-          ]
+            _metaRow(
+              'Last Checked',
+              DateFormat('h:mm:ss a').format(_healthStatus!.lastChecked!),
+            ),
+          ],
         ],
       ),
     );
@@ -237,7 +268,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
@@ -261,7 +295,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+              ),
             ),
           ),
           Expanded(
@@ -276,4 +313,3 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
-

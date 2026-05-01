@@ -5,6 +5,7 @@ import '../../../core/theme.dart';
 import '../../../core/utils/service_locator.dart';
 import '../../../routes/app_router.dart';
 import '../../../data/models/deepfake_request.dart';
+import '../../../data/services/deepfake_service.dart';
 
 /// Animated analysis status screen that calls the deepfake backend.
 class AnalysisProgressScreen extends StatefulWidget {
@@ -44,8 +45,9 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
       if (!mounted) return;
       setState(() => reportDone = true);
 
-      final result =
-          await ServiceLocator.deepfakeService.analyze(widget.request);
+      final result = await ServiceLocator.deepfakeService.analyze(
+        widget.request,
+      );
       if (!mounted) return;
       setState(() => chainDone = true);
 
@@ -54,12 +56,23 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
         AppRoutes.result,
         arguments: result,
       );
+    } on UnauthorizedException {
+      await ServiceLocator.authProvider.logout();
+      ServiceLocator.authProvider.setError(
+        'Your session has expired. Please log in again.',
+      );
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.login,
+        (route) => false,
+      );
     } catch (e) {
       if (!mounted) return;
-      
+
       final rawError = e.toString();
-      final displayError = rawError.startsWith('Exception: ') 
-          ? rawError.substring('Exception: '.length) 
+      final displayError = rawError.startsWith('Exception: ')
+          ? rawError.substring('Exception: '.length)
           : rawError;
 
       setState(() {
@@ -72,11 +85,9 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
   @override
   Widget build(BuildContext context) {
     final isVideo = widget.request.mediaType.toLowerCase() == 'video';
-    
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Content Analysis'),
-      ),
+      appBar: AppBar(title: const Text('Content Analysis')),
       body: Padding(
         padding: AppSpacing.screenPadding,
         child: Column(
@@ -95,14 +106,22 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: SweepGradient(
-                        colors: [AppColors.primary, AppColors.secondary, AppColors.primary],
+                        colors: [
+                          AppColors.primary,
+                          AppColors.secondary,
+                          AppColors.primary,
+                        ],
                       ),
                     ),
                     child: const Center(
                       child: CircleAvatar(
                         radius: 52,
                         backgroundColor: AppColors.surface,
-                        child: Icon(Icons.shield_rounded, size: 40, color: AppColors.primary),
+                        child: Icon(
+                          Icons.shield_rounded,
+                          size: 40,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ),
@@ -112,18 +131,18 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
             const SizedBox(height: AppSpacing.lg),
             Text(
               'Analyzing Content',
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              isVideo ? 'Analyzing video — this may take a moment...' : 'Analyzing image...',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: AppColors.textSecondary),
+              isVideo
+                  ? 'Analyzing video — this may take a moment...'
+                  : 'Analyzing image...',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -133,12 +152,12 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
                 value: chainDone
                     ? 1
                     : reportDone
-                        ? 0.8
-                        : aiDone
-                            ? 0.6
-                            : uploadingDone
-                                ? 0.3
-                                : 0.1,
+                    ? 0.8
+                    : aiDone
+                    ? 0.6
+                    : uploadingDone
+                    ? 0.3
+                    : 0.1,
                 backgroundColor: AppColors.border,
                 color: AppColors.primary,
                 minHeight: 8,
@@ -175,20 +194,18 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
                   const SizedBox(height: AppSpacing.lg),
                   Text(
                     'Do not close this window. Analysis may take up a few minutes.',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: AppColors.textSecondary),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   if (hasError) ...[
                     const SizedBox(height: AppSpacing.md),
                     Text(
                       errorMessage ?? 'Something went wrong.',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: Colors.redAccent),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: Colors.redAccent),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: AppSpacing.sm),
@@ -243,4 +260,3 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
     );
   }
 }
-

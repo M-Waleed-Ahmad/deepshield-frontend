@@ -57,12 +57,12 @@ class _ResultScreenState extends State<ResultScreen> {
               const SizedBox(height: AppSpacing.lg),
               _buildMainCard(context, result),
               const SizedBox(height: AppSpacing.lg),
-              
+
               if (result.type == 'video') ...[
                 _buildVideoAnalysis(context, result),
                 const SizedBox(height: AppSpacing.lg),
               ],
-              
+
               _buildForensicHistory(context, result),
               const SizedBox(height: AppSpacing.lg),
 
@@ -78,7 +78,11 @@ class _ResultScreenState extends State<ResultScreen> {
                     qrPlaceholderAsset: 'assets/vectors/qr_placeholder.svg',
                     heatmapAsset: '',
                   );
-                  Navigator.pushNamed(context, AppRoutes.report, arguments: summary);
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.report,
+                    arguments: summary,
+                  );
                 },
               ),
               const SizedBox(height: AppSpacing.md),
@@ -118,9 +122,9 @@ class _ResultScreenState extends State<ResultScreen> {
               child: Text(
                 result.prediction,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: result.verdictColor,
-                    ),
+                  fontWeight: FontWeight.w800,
+                  color: result.verdictColor,
+                ),
                 maxLines: 2,
               ),
             ),
@@ -131,9 +135,9 @@ class _ResultScreenState extends State<ResultScreen> {
               builder: (context, value, _) {
                 return Text(
                   '${(value * 100).toStringAsFixed(1)}%',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
                 );
               },
             ),
@@ -142,9 +146,9 @@ class _ResultScreenState extends State<ResultScreen> {
         const SizedBox(height: AppSpacing.sm),
         Text(
           'Band classification: ${result.band}',
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(color: AppColors.textSecondary),
         ),
         const SizedBox(height: AppSpacing.sm),
         ClipRRect(
@@ -182,10 +186,9 @@ class _ResultScreenState extends State<ResultScreen> {
         children: [
           Text(
             result.filename,
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.w700),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: AppSpacing.md),
           ClipRRect(
@@ -198,18 +201,19 @@ class _ResultScreenState extends State<ResultScreen> {
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          if (result.details != null && result.details!['model'] == 'ucf_and_xception') ...[
+          if (result.details != null &&
+              result.details!['model'] == 'ucf_and_xception') ...[
             Text(
               'Ensemble Fusion Weights',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleSmall
-                  ?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: AppSpacing.sm),
             Builder(
               builder: (context) {
-                final fusion = result.details!['fusion_weights'] as Map<String, dynamic>?;
+                final fusion =
+                    result.details!['fusion_weights'] as Map<String, dynamic>?;
                 if (fusion == null) return const SizedBox.shrink();
                 final ucfW = (fusion['ucf'] as num?)?.toDouble() ?? 0.8;
                 final xcepW = (fusion['xception'] as num?)?.toDouble() ?? 0.2;
@@ -223,10 +227,9 @@ class _ResultScreenState extends State<ResultScreen> {
           ],
           Text(
             result.explanation,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: AppColors.textSecondary),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -237,7 +240,8 @@ class _ResultScreenState extends State<ResultScreen> {
     if (result.details == null) return const SizedBox.shrink();
 
     final frameCount = result.details!['frame_count'];
-    final xception = result.details!['xception_metrics'] as Map<String, dynamic>?;
+    final xception =
+        result.details!['xception_metrics'] as Map<String, dynamic>?;
 
     return Container(
       width: double.infinity,
@@ -254,16 +258,25 @@ class _ResultScreenState extends State<ResultScreen> {
             children: [
               const Icon(Icons.videocam_outlined, color: AppColors.primary),
               const SizedBox(width: AppSpacing.sm),
-              Text('Video Analysis Tracker', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Video Analysis Tracker',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
           if (frameCount != null)
             _metaRow('Analyzed frames', '$frameCount evaluated'),
           if (xception != null) ...[
-            _metaRow('Mean frame confidence', '${((xception['mean'] as num?)?.toDouble() ?? 0.0) * 100.0}%'),
-            _metaRow('Max frame confidence', '${((xception['max'] as num?)?.toDouble() ?? 0.0) * 100.0}%'),
-          ]
+            _metaRow(
+              'Mean frame confidence',
+              '${((xception['mean'] as num?)?.toDouble() ?? 0.0) * 100.0}%',
+            ),
+            _metaRow(
+              'Max frame confidence',
+              '${((xception['max'] as num?)?.toDouble() ?? 0.0) * 100.0}%',
+            ),
+          ],
         ],
       ),
     );
@@ -281,13 +294,18 @@ class _ResultScreenState extends State<ResultScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Forensic History', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            'Forensic History',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: AppSpacing.sm),
-          
+
           if (!result.isDuplicate && result.priorAnalyses.length <= 1)
             Text(
               'First submission — no prior history for this file.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
             )
           else ...[
             Container(
@@ -300,15 +318,19 @@ class _ResultScreenState extends State<ResultScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 20),
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.orange,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '⚠️ This file has been submitted before.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.orange,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        color: Colors.orange,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
@@ -329,7 +351,7 @@ class _ResultScreenState extends State<ResultScreen> {
 
     return list.map((item) {
       final isExpanded = _expandedHistoryItems.contains(item.id);
-      
+
       return Container(
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
@@ -372,9 +394,15 @@ class _ResultScreenState extends State<ResultScreen> {
                   children: [
                     Text(
                       formatter.format(item.createdAt),
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
-                    Icon(isExpanded ? Icons.expand_less : Icons.expand_more, size: 16),
+                    Icon(
+                      isExpanded ? Icons.expand_less : Icons.expand_more,
+                      size: 16,
+                    ),
                   ],
                 ),
                 if (isExpanded) ...[
@@ -388,7 +416,7 @@ class _ResultScreenState extends State<ResultScreen> {
                       child: _buildHeatmapImage(item.heatmapUrl),
                     ),
                   ),
-                ]
+                ],
               ],
             ),
           ),
@@ -435,7 +463,10 @@ class _ResultScreenState extends State<ResultScreen> {
           const SizedBox(height: AppSpacing.sm),
           _metaRow('Analyzed on', formatter.format(result.createdAt)),
           _metaRow('Media type', result.type),
-          _metaRow('Blockchain hash', '${result.blockchainHash.substring(0, 16)}...'),
+          _metaRow(
+            'Blockchain hash',
+            '${result.blockchainHash.substring(0, 16)}...',
+          ),
         ],
       ),
     );
@@ -483,20 +514,25 @@ class _ResultScreenState extends State<ResultScreen> {
                 children: [
                   const Icon(Icons.shield_outlined, color: AppColors.primary),
                   const SizedBox(width: AppSpacing.sm),
-                  Text('Blockchain Verification',
-                      style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    'Blockchain Verification',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.md),
               _metaRow('Status', 'Anchored'),
               _metaRow('Hash', result.blockchainHash),
-              _metaRow('Timestamp', DateFormat('MMM d, h:mm a').format(result.createdAt)),
+              _metaRow(
+                'Timestamp',
+                DateFormat('MMM d, h:mm a').format(result.createdAt),
+              ),
               const SizedBox(height: AppSpacing.md),
               PrimaryButton(
                 label: 'Close',
                 onPressed: () => Navigator.pop(context),
                 fullWidth: true,
-              )
+              ),
             ],
           ),
         );
@@ -504,4 +540,3 @@ class _ResultScreenState extends State<ResultScreen> {
     );
   }
 }
-

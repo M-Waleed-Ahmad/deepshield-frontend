@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/utils/service_locator.dart';
 import '../data/models/analysis_result.dart';
 import '../data/models/report_summary.dart';
 import '../data/models/deepfake_request.dart';
@@ -25,6 +26,8 @@ class AppRoutes {
 
 class AppRouter {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
+    final isLoggedIn = ServiceLocator.authProvider.isLoggedIn;
+
     switch (settings.name) {
       case AppRoutes.splash:
         return MaterialPageRoute(builder: (_) => const SplashScreen());
@@ -35,27 +38,36 @@ class AppRouter {
       case AppRoutes.signup:
         return MaterialPageRoute(builder: (_) => const SignUpScreen());
       case AppRoutes.home:
+        if (!isLoggedIn) {
+          return MaterialPageRoute(builder: (_) => const LoginScreen());
+        }
         return MaterialPageRoute(builder: (_) => const HomeShell());
       case AppRoutes.analysisProgress:
+        if (!isLoggedIn) {
+          return MaterialPageRoute(builder: (_) => const LoginScreen());
+        }
         final media = settings.arguments as DeepfakeRequest;
         return MaterialPageRoute(
           builder: (_) => AnalysisProgressScreen(request: media),
         );
       case AppRoutes.result:
+        if (!isLoggedIn) {
+          return MaterialPageRoute(builder: (_) => const LoginScreen());
+        }
         final result = settings.arguments as AnalysisResult;
-        return MaterialPageRoute(
-          builder: (_) => ResultScreen(result: result),
-        );
+        return MaterialPageRoute(builder: (_) => ResultScreen(result: result));
       case AppRoutes.report:
+        if (!isLoggedIn) {
+          return MaterialPageRoute(builder: (_) => const LoginScreen());
+        }
         final summary = settings.arguments as ReportSummary;
         return MaterialPageRoute(
           builder: (_) => ReportScreen(summary: summary),
         );
       default:
         return MaterialPageRoute(
-          builder: (_) => const Scaffold(
-            body: Center(child: Text('Route not found')),
-          ),
+          builder: (_) =>
+              const Scaffold(body: Center(child: Text('Route not found'))),
         );
     }
   }

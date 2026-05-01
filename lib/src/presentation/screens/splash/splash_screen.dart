@@ -30,10 +30,14 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(seconds: 2),
     );
 
-    _fadeIn = CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic);
-    _scaleIn = Tween<double>(begin: 0.9, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    _fadeIn = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOutCubic,
     );
+    _scaleIn = Tween<double>(
+      begin: 0.9,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
     _controller.forward();
     _kickoffNavigation();
@@ -41,16 +45,13 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _kickoffNavigation() async {
     await Future.delayed(const Duration(seconds: 3));
-    final isFirstLaunch =
-        await ServiceLocator.bootstrapService.isFirstLaunch();
-    final isLoggedIn = await ServiceLocator.bootstrapService.isLoggedIn();
+    await ServiceLocator.authProvider.tryAutoLogin();
+    final isLoggedIn = ServiceLocator.authProvider.isLoggedIn;
 
     if (!mounted) return;
 
     if (isLoggedIn) {
       Navigator.pushReplacementNamed(context, AppRoutes.home);
-    } else if (isFirstLaunch) {
-      Navigator.pushReplacementNamed(context, AppRoutes.welcome);
     } else {
       Navigator.pushReplacementNamed(context, AppRoutes.login);
     }
@@ -75,10 +76,7 @@ class _SplashScreenState extends State<SplashScreen>
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF0E2546),
-                  Color(0xFF060B14),
-                ],
+                colors: [Color(0xFF0E2546), Color(0xFF060B14)],
               ),
             ),
           ),
