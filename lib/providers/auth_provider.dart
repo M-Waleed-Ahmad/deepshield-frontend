@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import '../services/auth_service.dart';
 import '../services/auth_storage.dart';
+import '../src/core/environment.dart';
 
 class AuthProvider extends ChangeNotifier {
   AuthProvider({
@@ -42,24 +46,57 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> tryAutoLogin() async {
-    final session = await _authStorage.loadSession();
-    final token = session[_tokenKey];
-    final userId = session[_userIdKey];
-    final email = session[_emailKey];
+    try {
+      final session = await _authStorage.loadSession();
+      final token = session[_tokenKey];
 
-    if (token != null) {
-      _token = token;
-      _userId = userId;
-      _userEmail = email;
-      _isLoggedIn = true;
-    } else {
-      _token = null;
-      _userId = null;
-      _userEmail = null;
+      if (token == null) {
+        _isLoggedIn = false;
+        _token = null;
+        _userId = null;
+        _userEmail = null;
+        notifyListeners();
+        return;
+      }
+
+      final isValid = await _validateToken(token);
+
+      if (isValid) {
+        _token = token;
+        _userId = session[_userIdKey];
+        _userEmail = session[_emailKey];
+        _isLoggedIn = true;
+      } else {
+        await _authStorage.clearSession();
+        _isLoggedIn = false;
+        _token = null;
+        _userId = null;
+        _userEmail = null;
+      }
+    } catch (_) {
       _isLoggedIn = false;
     }
 
     notifyListeners();
+  }
+
+  Future<bool> _validateToken(String token) async {
+    try {
+      final baseUrl = _resolveBaseUrl(
+        Environment.aiServiceUrl,
+      ).replaceAll(RegExp(r'/+$'), '');
+
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/analyses/history'),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(const Duration(seconds: 5));
+      return response.statusCode == 200;
+    } catch (_) {
+      // Network failures should not force logout.
+      return true;
+    }
   }
 
   Future<void> login(String email, String password) async {
@@ -109,10 +146,6 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> logout() async {
     final activeToken = _token;
-    if (activeToken != null && activeToken.isNotEmpty) {
-      await _authService.logout(activeToken);
-    }
-
     await _authStorage.clearSession();
     _isLoggedIn = false;
     _isLoading = false;
@@ -122,6 +155,23 @@ class AuthProvider extends ChangeNotifier {
     _signupSuccessMessage = null;
     _errorMessage = null;
     notifyListeners();
+
+    if (activeToken != null && activeToken.isNotEmpty) {
+      _authService.logout(activeToken).catchError((_) {});
+    }
+  }
+
+  String _resolveBaseUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      final isLocalHost = uri.host == 'localhost' || uri.host == '127.0.0.1';
+      if (isLocalHost && Platform.isAndroid) {
+        return uri.replace(host: '10.0.2.2').toString();
+      }
+      return url;
+    } catch (_) {
+      return url;
+    }
   }
 
   void clearError() {

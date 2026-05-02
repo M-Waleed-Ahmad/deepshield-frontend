@@ -1,6 +1,8 @@
 import '../../../providers/auth_provider.dart';
+import '../../../providers/analysis_status_provider.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/auth_storage.dart';
+import '../../../services/analysis_service.dart';
 import '../../data/services/fake_analysis_service.dart';
 import '../../data/services/history_service.dart';
 import '../../data/services/deepfake_service.dart';
@@ -16,6 +18,10 @@ class ServiceLocator {
     authStorage: authStorage,
   );
   static final historyService = HistoryService();
+  static final analysisService = AnalysisService();
+  static final analysisStatusProvider = AnalysisStatusProvider(
+    analysisService: analysisService,
+  );
   static final fakeAnalysisService = FakeAnalysisService(
     historyService: historyService,
   );

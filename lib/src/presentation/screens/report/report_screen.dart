@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 
 import '../../../core/constants.dart';
 import '../../../core/theme.dart';
+import '../../../core/utils/report_downloader.dart';
+import '../../../core/utils/service_locator.dart';
 import '../../../data/models/report_summary.dart';
 import '../../widgets/primary_button.dart';
 import '../../widgets/verdict_badge.dart';
@@ -14,13 +16,47 @@ class ReportScreen extends StatelessWidget {
 
   final ReportSummary summary;
 
+  Future<void> _downloadReport(BuildContext context) async {
+    final reportUrl = summary.result.reportUrl;
+    if (reportUrl == null || reportUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Report is not ready yet.')),
+      );
+      return;
+    }
+
+    final token = ServiceLocator.authProvider.token;
+    if (token == null || token.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to download reports.')),
+      );
+      return;
+    }
+
+    try {
+      await downloadAndOpenReport(
+        context: context,
+        reportUrl: reportUrl,
+        token: token,
+      );
+    } catch (_) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not download the report. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final result = summary.result;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Report'),
-      ),
+      appBar: AppBar(title: const Text('Report')),
       body: SingleChildScrollView(
         padding: AppSpacing.screenPadding,
         child: Column(
@@ -30,12 +66,14 @@ class ReportScreen extends StatelessWidget {
               children: [
                 VerdictBadge(verdict: result.verdict),
                 const SizedBox(width: AppSpacing.md),
-                Text(
-                  '${result.confidence.toStringAsFixed(1)}% confidence',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w600),
+                Expanded(
+                  child: Text(
+                    '${result.confidence.toStringAsFixed(1)}% confidence',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
@@ -62,14 +100,13 @@ class ReportScreen extends StatelessWidget {
             _section(
               context,
               title: 'Visual explanation',
-                child: ClipRRect(
-                    borderRadius: AppRadii.card,
-                    child: SvgPicture.asset(
-                      summary.heatmapAsset,
-                      height: 180,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    )),
+              child: ClipRRect(
+                borderRadius: AppRadii.card,
+                child: _buildHeatmapPreview(
+                  result.heatmapUrl,
+                  summary.heatmapAsset,
+                ),
+              ),
             ),
             const SizedBox(height: AppSpacing.md),
             _section(
@@ -93,12 +130,7 @@ class ReportScreen extends StatelessWidget {
                         borderRadius: AppRadii.card,
                         border: Border.all(color: AppColors.border),
                       ),
-                      child: SvgPicture.asset(
-                        summary.qrPlaceholderAsset,
-                        height: 140,
-                        width: 140,
-                        fit: BoxFit.cover,
-                      ),
+                      child: _buildQrPreview(summary.qrPlaceholderAsset),
                     ),
                   ),
                 ],
@@ -108,13 +140,7 @@ class ReportScreen extends StatelessWidget {
             PrimaryButton(
               label: 'Download report',
               icon: const Icon(Icons.download_rounded, color: Colors.white),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Download will be implemented later'),
-                  ),
-                );
-              },
+              onPressed: () => _downloadReport(context),
             ),
           ],
         ),
@@ -122,8 +148,63 @@ class ReportScreen extends StatelessWidget {
     );
   }
 
-  Widget _section(BuildContext context,
-      {required String title, required Widget child}) {
+  Widget _buildHeatmapPreview(String? heatmapUrl, String? fallbackAsset) {
+    if (heatmapUrl != null && heatmapUrl.isNotEmpty) {
+      return Image.network(
+        heatmapUrl,
+        height: 180,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) {
+          return Container(
+            height: 180,
+            width: double.infinity,
+            color: Colors.grey[800],
+            child: const Center(child: Text('Heatmap unavailable')),
+          );
+        },
+      );
+    }
+
+    if (fallbackAsset != null && fallbackAsset.isNotEmpty) {
+      return SvgPicture.asset(
+        fallbackAsset,
+        height: 180,
+        width: double.infinity,
+        fit: BoxFit.cover,
+      );
+    }
+
+    return Container(
+      height: 180,
+      width: double.infinity,
+      color: Colors.grey[800],
+      child: const Center(child: Text('Heatmap unavailable')),
+    );
+  }
+
+  Widget _buildQrPreview(String? assetPath) {
+    if (assetPath != null && assetPath.isNotEmpty) {
+      return SvgPicture.asset(
+        assetPath,
+        height: 140,
+        width: 140,
+        fit: BoxFit.cover,
+      );
+    }
+
+    return const SizedBox(
+      height: 140,
+      width: 140,
+      child: Icon(Icons.image_not_supported, color: Colors.grey),
+    );
+  }
+
+  Widget _section(
+    BuildContext context, {
+    required String title,
+    required Widget child,
+  }) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.md),

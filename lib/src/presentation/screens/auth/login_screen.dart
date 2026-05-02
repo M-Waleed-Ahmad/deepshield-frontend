@@ -19,6 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  bool _handledRouteMessage = false;
 
   @override
   void initState() {
@@ -57,6 +58,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_handledRouteMessage) {
+      _handledRouteMessage = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final args = ModalRoute.of(context)?.settings.arguments;
+        if (!mounted || args is! String || args.trim().isEmpty) {
+          return;
+        }
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(args)));
+      });
+    }
+
     return ListenableBuilder(
       listenable: ServiceLocator.authProvider,
       builder: (context, _) {

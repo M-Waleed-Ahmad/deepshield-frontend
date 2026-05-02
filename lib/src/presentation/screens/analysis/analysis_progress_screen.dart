@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants.dart';
 import '../../../core/theme.dart';
+import '../../../core/utils/authenticated_http.dart';
 import '../../../core/utils/service_locator.dart';
 import '../../../routes/app_router.dart';
 import '../../../data/models/deepfake_request.dart';
@@ -57,16 +58,8 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
         arguments: result,
       );
     } on UnauthorizedException {
-      await ServiceLocator.authProvider.logout();
-      ServiceLocator.authProvider.setError(
-        'Your session has expired. Please log in again.',
-      );
       if (!mounted) return;
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        AppRoutes.login,
-        (route) => false,
-      );
+      await handleUnauthorized(context);
     } catch (e) {
       if (!mounted) return;
 

@@ -30,6 +30,10 @@ class FakeAnalysisService {
       filename: media.title,
       isDuplicate: false,
       priorAnalyses: [],
+      reportUrl: null,
+      blockchainStatus: 'pending',
+      polygonUrl: null,
+      blockchainTxHash: null,
       blockchainHash: _fakeHash(),
       explanation:
           'Our model detected subtle frame inconsistencies suggesting possible manipulation. This is simulated data for MVP.',

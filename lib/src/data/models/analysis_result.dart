@@ -23,11 +23,11 @@ class PriorAnalysis {
 
   factory PriorAnalysis.fromJson(Map<String, dynamic> json) {
     return PriorAnalysis(
-      id: json['id'] as String? ?? '',
+      id: json['id']?.toString() ?? '',
       prediction: json['prediction'] as String? ?? 'Unknown',
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0.0,
       band: json['band'] as String? ?? 'Unknown',
-      createdAt: json['created_at'] != null 
+      createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String).toLocal()
           : DateTime.now(),
       heatmapUrl: json['heatmap_url'] as String?,
@@ -51,6 +51,10 @@ class AnalysisResult {
     this.heatmapUrl,
     this.thresholds,
     this.details,
+    this.reportUrl,
+    this.blockchainStatus,
+    this.polygonUrl,
+    this.blockchainTxHash,
     // Keep old fields to prevent compilation errors temporarily
     this.mediaTitle = '',
     this.mediaUrl = '',
@@ -60,12 +64,17 @@ class AnalysisResult {
 
   final String id;
   final String prediction;
-  final double confidence; // e.g. 0.812 means 81.2% or could be just used directly. We will assume 0.812 from backend -> 81.2% in UI
+  final double
+  confidence; // e.g. 0.812 means 81.2% or could be just used directly. We will assume 0.812 from backend -> 81.2% in UI
   final String band;
   final String type;
   final String? heatmapUrl;
   final Map<String, dynamic>? thresholds;
   final Map<String, dynamic>? details;
+  final String? reportUrl;
+  final String? blockchainStatus;
+  final String? polygonUrl;
+  final String? blockchainTxHash;
   final double processingTimeSeconds;
   final String filename;
   final bool isDuplicate;
@@ -81,8 +90,12 @@ class AnalysisResult {
 
   Verdict get verdict {
     final lower = prediction.toLowerCase();
-    if (lower.contains('manipulated') || lower.contains('ai-generated')) return Verdict.suspected;
-    if (lower.contains('authentic')) return Verdict.authentic;
+    if (lower.contains('manipulated') || lower.contains('ai-generated')) {
+      return Verdict.suspected;
+    }
+    if (lower.contains('authentic')) {
+      return Verdict.authentic;
+    }
     return Verdict.inconclusive;
   }
 
@@ -105,24 +118,35 @@ class AnalysisResult {
     }
 
     return AnalysisResult(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      id: json['id']?.toString() ?? '',
       prediction: json['prediction'] as String? ?? 'Unknown',
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0.0,
       band: json['band'] as String? ?? 'Unknown',
-      type: json['type'] as String? ?? media.type,
+      type:
+          json['type'] as String? ??
+          json['media_type'] as String? ??
+          media.type,
       heatmapUrl: json['heatmap_url'] as String?,
       thresholds: json['thresholds'] as Map<String, dynamic>?,
       details: json['details'] as Map<String, dynamic>?,
-      processingTimeSeconds: (json['processing_time_seconds'] as num?)?.toDouble() ?? 0.0,
+      reportUrl: json['report_url'] as String? ?? json['pdf_url'] as String?,
+      blockchainStatus: json['blockchain_status'] as String?,
+      polygonUrl: json['polygon_url'] as String?,
+      blockchainTxHash: json['blockchain_tx_hash'] as String?,
+      processingTimeSeconds:
+          (json['processing_time_seconds'] as num?)?.toDouble() ?? 0.0,
       filename: json['filename'] as String? ?? media.title,
       isDuplicate: json['is_duplicate'] as bool? ?? false,
       priorAnalyses: analysesList,
-      createdAt: DateTime.now(),
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String).toLocal()
+          : DateTime.now(),
       mediaItem: media,
       mediaTitle: media.title,
       mediaUrl: media.url,
-      blockchainHash: _fakeHash(),
-      explanation: 'Analysis processed in ${(json['processing_time_seconds'] as num?)?.toDouble() ?? 0.0} seconds.',
+      blockchainHash: json['blockchain_tx_hash'] as String? ?? _fakeHash(),
+      explanation:
+          'Analysis processed in ${(json['processing_time_seconds'] as num?)?.toDouble() ?? 0.0} seconds.',
     );
   }
 

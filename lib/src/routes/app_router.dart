@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/utils/service_locator.dart';
 import '../data/models/analysis_result.dart';
+import '../data/models/media_item.dart';
 import '../data/models/report_summary.dart';
 import '../data/models/deepfake_request.dart';
 import '../presentation/screens/analysis/analysis_progress_screen.dart';
@@ -34,7 +35,10 @@ class AppRouter {
       case AppRoutes.welcome:
         return MaterialPageRoute(builder: (_) => const WelcomeScreen());
       case AppRoutes.login:
-        return MaterialPageRoute(builder: (_) => const LoginScreen());
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const LoginScreen(),
+        );
       case AppRoutes.signup:
         return MaterialPageRoute(builder: (_) => const SignUpScreen());
       case AppRoutes.home:
@@ -54,7 +58,26 @@ class AppRouter {
         if (!isLoggedIn) {
           return MaterialPageRoute(builder: (_) => const LoginScreen());
         }
-        final result = settings.arguments as AnalysisResult;
+        final dynamic argument = settings.arguments;
+        final AnalysisResult result;
+        if (argument is AnalysisResult) {
+          result = argument;
+        } else if (argument is Map<String, dynamic>) {
+          final media = MediaItem(
+            id: argument['id']?.toString() ?? '',
+            title: argument['filename']?.toString() ?? 'Unknown file',
+            url: argument['media_url']?.toString() ?? '',
+            type: argument['type']?.toString() ?? 'image',
+            thumbnailAsset: 'assets/images/logo.png',
+          );
+          result = AnalysisResult.fromJson(argument, media);
+        } else {
+          return MaterialPageRoute(
+            builder: (_) => const Scaffold(
+              body: Center(child: Text('Invalid result data')),
+            ),
+          );
+        }
         return MaterialPageRoute(builder: (_) => ResultScreen(result: result));
       case AppRoutes.report:
         if (!isLoggedIn) {

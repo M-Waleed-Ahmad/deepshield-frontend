@@ -1,15 +1,22 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants.dart';
+import '../../../core/environment.dart';
 import '../../../core/theme.dart';
+import '../../../core/utils/authenticated_http.dart';
+import '../../../core/utils/report_downloader.dart';
+import '../../../core/utils/service_locator.dart';
 import '../../../data/models/analysis_result.dart';
 import '../../../data/models/report_summary.dart';
 import '../../../routes/app_router.dart';
 import '../../widgets/primary_button.dart';
 
-/// Displays deepfake analysis result with actions.
 class ResultScreen extends StatefulWidget {
   const ResultScreen({super.key, required this.result});
 
@@ -20,8 +27,439 @@ class ResultScreen extends StatefulWidget {
 }
 
 class _ResultScreenState extends State<ResultScreen> {
-  // state for expanded history items will be kept in a set of IDs
   final Set<String> _expandedHistoryItems = {};
+
+  Timer? _pollingTimer;
+  int _pollCount = 0;
+  static const int _maxPolls = 12;
+
+  String? _reportUrl;
+  String _blockchainStatus = 'pending';
+  String _analysisId = '';
+  String? _blockchainTxHash;
+  String? _polygonUrl;
+  bool _reportReady = false;
+  bool _blockchainResolved = false;
+  bool _isDownloading = false;
+
+  void _log(String message) {
+    debugPrint('[ResultScreen] $message');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    final result = widget.result;
+    _reportUrl = result.reportUrl;
+    _analysisId = result.id;
+    _blockchainStatus = result.blockchainStatus ?? 'pending';
+    _blockchainTxHash = result.blockchainTxHash;
+    _polygonUrl = result.polygonUrl;
+    _reportReady = _reportUrl != null && _reportUrl!.isNotEmpty;
+    _blockchainResolved =
+        _blockchainStatus == 'confirmed' || _blockchainStatus == 'failed';
+
+    _log(
+      'initState analysisId=${widget.result.id} reportUrl=$_reportUrl '
+      'reportReady=$_reportReady blockchainStatus=$_blockchainStatus '
+      'blockchainResolved=$_blockchainResolved',
+    );
+
+    if (_analysisId.isEmpty) {
+      _log('analysis id missing, attempting to resolve via history');
+      _tryResolveAnalysisId();
+    }
+
+    if (!_reportReady || !_blockchainResolved) {
+      _startPolling();
+    } else {
+      _log('polling not started because both report and blockchain are resolved');
+    }
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startPolling() {
+    _pollingTimer?.cancel();
+    _log('starting polling for analysisId=$_analysisId');
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+      if (_pollCount >= _maxPolls) {
+        _log('polling stopped due to max polls reached ($_maxPolls)');
+        timer.cancel();
+        return;
+      }
+
+      _pollCount++;
+      _log('poll tick=$_pollCount/$_maxPolls reportReady=$_reportReady blockchainResolved=$_blockchainResolved');
+      await _pollAnalysisStatus();
+
+      if (_reportReady && _blockchainResolved) {
+        _log('polling resolved, stopping timer');
+        timer.cancel();
+      }
+    });
+  }
+
+  Future<void> _pollAnalysisStatus() async {
+    try {
+      final authProvider = ServiceLocator.authProvider;
+      final token = authProvider.token;
+      final analysisId = _analysisId;
+
+      if (token == null || token.isEmpty || analysisId.isEmpty) {
+        _log(
+          'poll skipped tokenEmpty=${token == null || token.isEmpty} analysisIdEmpty=${analysisId.isEmpty}',
+        );
+        return;
+      }
+
+      final baseUrl = _resolveBaseUrl(
+        Environment.aiServiceUrl,
+      ).replaceAll(RegExp(r'/+$'), '');
+      final url = '$baseUrl/analyses/$analysisId';
+      _log('poll request url=$url tokenPresent=${token.isNotEmpty}');
+
+      final response = await authenticatedGet(
+        url,
+        token,
+        context,
+        timeout: const Duration(seconds: 8),
+      );
+
+      _log('poll response status=${response.statusCode} body=${_clip(response.body)}');
+
+      if (!mounted) {
+        return;
+      }
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final nextReportUrl =
+            data['pdf_url'] as String? ?? data['report_url'] as String?;
+        final nextBlockchainStatus = data['blockchain_status'] as String? ?? 'pending';
+        final nextBlockchainTxHash = data['blockchain_tx_hash'] as String?;
+        final nextPolygonUrl = data['polygon_url'] as String?;
+        final nextReportReady = nextReportUrl != null && nextReportUrl.isNotEmpty;
+        final nextBlockchainResolved =
+            nextBlockchainStatus == 'confirmed' || nextBlockchainStatus == 'failed';
+
+        _log(
+          'parsed poll data pdf_url=$nextReportUrl '
+          'blockchain_status=$nextBlockchainStatus '
+          'txHashPresent=${nextBlockchainTxHash != null && nextBlockchainTxHash.isNotEmpty} '
+          'polygonPresent=${nextPolygonUrl != null && nextPolygonUrl.isNotEmpty} '
+          'reportReady=$nextReportReady blockchainResolved=$nextBlockchainResolved',
+        );
+
+        setState(() {
+          _reportUrl = nextReportUrl;
+          _blockchainStatus = nextBlockchainStatus;
+          _blockchainTxHash = nextBlockchainTxHash;
+          _polygonUrl = nextPolygonUrl;
+          _reportReady = nextReportReady;
+          _blockchainResolved = nextBlockchainResolved;
+        });
+      } else {
+        _log('poll non-200 response status=${response.statusCode}');
+      }
+    } catch (e, st) {
+      _log('poll exception=$e');
+      _log('poll stack=${_clip(st.toString(), max: 800)}');
+      // Polling errors are intentionally ignored to keep UI stable.
+    }
+  }
+
+  Future<void> _tryResolveAnalysisId() async {
+    try {
+      final authProvider = ServiceLocator.authProvider;
+      final token = authProvider.token;
+      if (token == null || token.isEmpty) return;
+
+      final baseUrl = _resolveBaseUrl(Environment.aiServiceUrl)
+          .replaceAll(RegExp(r'/+$'), '');
+      final url = '$baseUrl/analyses/history';
+      _log('resolve id: fetching history $url');
+      final resp = await authenticatedGet(url, token, context);
+      if (resp.statusCode != 200) return;
+      final decoded = jsonDecode(resp.body);
+      final List<dynamic> analysesRaw = decoded is Map<String, dynamic>
+          ? (decoded['analyses'] ?? decoded['items'] ?? decoded['data'] ?? [])
+              as List<dynamic>
+          : (decoded is List ? decoded : <dynamic>[]);
+
+      final targetFilename = widget.result.filename;
+      for (final item in analysesRaw.whereType<Map<String, dynamic>>()) {
+        final fname = item['filename']?.toString() ?? '';
+        if (fname == targetFilename) {
+          final foundId = item['id']?.toString() ?? '';
+          if (foundId.isNotEmpty) {
+            setState(() {
+              _analysisId = foundId;
+            });
+            _log('resolved analysis id=$_analysisId by filename match');
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      _log('resolve id failed: $e');
+    }
+  }
+
+  String _resolveBaseUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      final isLocalHost = uri.host == 'localhost' || uri.host == '127.0.0.1';
+      if (isLocalHost && Platform.isAndroid) {
+        return uri.replace(host: '10.0.2.2').toString();
+      }
+      return url;
+    } catch (_) {
+      return url;
+    }
+  }
+
+  Future<void> _downloadPdf() async {
+    if (_reportUrl == null) {
+      _log('download blocked: reportUrl is null');
+      return;
+    }
+
+    if (_reportUrl!.isEmpty) {
+      _log('download blocked: reportUrl is empty');
+      return;
+    }
+
+    setState(() {
+      _isDownloading = true;
+    });
+
+    try {
+      final authProvider = ServiceLocator.authProvider;
+      final token = authProvider.token;
+      if (token == null || token.isEmpty) {
+        _log('download blocked: auth token missing');
+        throw Exception('Not authenticated');
+      }
+
+      _log('download request url=$_reportUrl tokenPresent=${token.isNotEmpty}');
+
+      await downloadAndOpenReport(
+        context: context,
+        reportUrl: _reportUrl!,
+        token: token,
+      );
+    } catch (e, st) {
+      _log('download exception=$e');
+      _log('download stack=${_clip(st.toString(), max: 800)}');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not download the report. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+        });
+      }
+    }
+  }
+
+  String _clip(String value, {int max = 400}) {
+    if (value.length <= max) {
+      return value;
+    }
+    return '${value.substring(0, max)}...';
+  }
+
+  Widget _buildDownloadButton() {
+    return ElevatedButton.icon(
+      icon: _isDownloading
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : const Icon(Icons.download),
+      label: Text(_isDownloading ? 'Downloading...' : 'Download PDF'),
+      onPressed: _isDownloading ? null : _downloadPdf,
+    );
+  }
+
+  Widget _buildCard({required String title, required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.cardOverlay,
+        borderRadius: AppRadii.card,
+        boxShadow: const [AppShadows.soft],
+        border: Border.all(color: AppColors.subtle),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: AppSpacing.sm),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildForensicReportCard() {
+    if (_reportReady && _reportUrl != null) {
+      return _buildCard(
+        title: 'Forensic Report',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 8),
+                Text('Report ready'),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildDownloadButton(),
+          ],
+        ),
+      );
+    } else if (_pollCount >= _maxPolls) {
+      return _buildCard(
+        title: 'Forensic Report',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Report generation is taking longer than expected. '
+              'Try refreshing in a few minutes.',
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _pollCount = 0;
+                });
+                _startPolling();
+              },
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return _buildCard(
+        title: 'Forensic Report',
+        child: const Column(
+          children: [
+            LinearProgressIndicator(),
+            SizedBox(height: 8),
+            Text('Generating report...'),
+          ],
+        ),
+      );
+    }
+  }
+
+  Widget _buildBlockchainCard() {
+    switch (_blockchainStatus) {
+      case 'confirmed':
+        return _buildCard(
+          title: 'Blockchain Verification',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.verified_user, color: Colors.green),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Report hash anchored on Polygon Amoy testnet.',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (_blockchainTxHash != null)
+                Text(
+                  'TX: ${_shortTxHash(_blockchainTxHash)}',
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                ),
+              const SizedBox(height: 12),
+              if (_polygonUrl != null)
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.open_in_new, size: 16),
+                  label: const Text('View on PolygonScan'),
+                  onPressed: () async {
+                    final uri = Uri.parse(_polygonUrl!);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(
+                        uri,
+                        mode: LaunchMode.externalApplication,
+                      );
+                    } else if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Could not open browser.'),
+                        ),
+                      );
+                    }
+                  },
+                ),
+            ],
+          ),
+        );
+      case 'failed':
+        return _buildCard(
+          title: 'Blockchain Verification',
+          child: const Row(
+            children: [
+              Icon(Icons.warning_amber, color: Colors.orange),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Blockchain anchoring was unsuccessful. '
+                  'The forensic report remains valid.',
+                ),
+              ),
+            ],
+          ),
+        );
+      case 'pending':
+      default:
+        if (_pollCount >= _maxPolls) {
+          return _buildCard(
+            title: 'Blockchain Verification',
+            child: const Text('Verification status unavailable.'),
+          );
+        }
+        return _buildCard(
+          title: 'Blockchain Verification',
+          child: const Column(
+            children: [
+              LinearProgressIndicator(),
+              SizedBox(height: 8),
+              Text('Anchoring to Polygon blockchain...'),
+            ],
+          ),
+        );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,15 +495,12 @@ class _ResultScreenState extends State<ResultScreen> {
               const SizedBox(height: AppSpacing.lg),
               _buildMainCard(context, result),
               const SizedBox(height: AppSpacing.lg),
-
               if (result.type == 'video') ...[
                 _buildVideoAnalysis(context, result),
                 const SizedBox(height: AppSpacing.lg),
               ],
-
               _buildForensicHistory(context, result),
               const SizedBox(height: AppSpacing.lg),
-
               PrimaryButton(
                 label: 'View full PDF report',
                 icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
@@ -103,6 +538,10 @@ class _ResultScreenState extends State<ResultScreen> {
               ),
               const SizedBox(height: AppSpacing.lg),
               _buildMetadataSection(context, result),
+              const SizedBox(height: AppSpacing.lg),
+              _buildForensicReportCard(),
+              const SizedBox(height: AppSpacing.lg),
+              _buildBlockchainCard(),
             ],
           ),
         ),
@@ -299,7 +738,6 @@ class _ResultScreenState extends State<ResultScreen> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: AppSpacing.sm),
-
           if (!result.isDuplicate && result.priorAnalyses.length <= 1)
             Text(
               'First submission — no prior history for this file.',
@@ -326,7 +764,7 @@ class _ResultScreenState extends State<ResultScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '⚠️ This file has been submitted before.',
+                      '⚠ This file has been submitted before.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Colors.orange,
                         fontWeight: FontWeight.w600,
@@ -465,11 +903,23 @@ class _ResultScreenState extends State<ResultScreen> {
           _metaRow('Media type', result.type),
           _metaRow(
             'Blockchain hash',
-            '${result.blockchainHash.substring(0, 16)}...',
+            _blockchainTxHash != null
+                ? _shortTxHash(_blockchainTxHash)
+                : 'Pending...',
           ),
         ],
       ),
     );
+  }
+
+  String _shortTxHash(String? hash) {
+    if (hash == null || hash.isEmpty) {
+      return 'Pending...';
+    }
+    if (hash.length <= 16) {
+      return hash;
+    }
+    return '${hash.substring(0, 10)}...${hash.substring(hash.length - 6)}';
   }
 
   Widget _metaRow(String label, String value) {
@@ -521,8 +971,8 @@ class _ResultScreenState extends State<ResultScreen> {
                 ],
               ),
               const SizedBox(height: AppSpacing.md),
-              _metaRow('Status', 'Anchored'),
-              _metaRow('Hash', result.blockchainHash),
+              _metaRow('Status', _blockchainStatus),
+              _metaRow('Hash', _shortTxHash(_blockchainTxHash)),
               _metaRow(
                 'Timestamp',
                 DateFormat('MMM d, h:mm a').format(result.createdAt),

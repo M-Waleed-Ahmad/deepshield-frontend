@@ -80,12 +80,7 @@ class _SplashScreenState extends State<SplashScreen>
               ),
             ),
           ),
-          Positioned.fill(
-            child: SvgPicture.asset(
-              'assets/vectors/splash_bg.svg',
-              fit: BoxFit.cover,
-            ),
-          ),
+          Positioned.fill(child: _buildSplashBackground()),
           SafeArea(
             child: FadeTransition(
               opacity: _fadeIn,
@@ -138,5 +133,14 @@ class _SplashScreenState extends State<SplashScreen>
         ],
       ),
     );
+  }
+
+  Widget _buildSplashBackground() {
+    const assetPath = 'assets/vectors/splash_bg.svg';
+    if (assetPath.isNotEmpty) {
+      return SvgPicture.asset(assetPath, fit: BoxFit.cover);
+    }
+
+    return Container(color: const Color(0xFF060B14));
   }
 }
