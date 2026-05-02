@@ -16,11 +16,12 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
   String? _localErrorMessage;
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
 
   @override
   void initState() {
@@ -42,7 +43,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _emailCtrl.removeListener(_clearAuthError);
     _passwordCtrl.removeListener(_clearAuthError);
     _confirmCtrl.removeListener(_clearAuthError);
-    _nameCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     _confirmCtrl.dispose();
@@ -114,7 +114,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.cardOverlay,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: AppRadii.card,
                           boxShadow: const [AppShadows.medium],
                           border: Border.all(color: AppColors.subtle),
                         ),
@@ -124,25 +124,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Greetings',
+                                'Create Account',
                                 style: Theme.of(context).textTheme.headlineSmall
-                                    ?.copyWith(letterSpacing: -0.2),
+                                    ?.copyWith(fontWeight: FontWeight.w700),
                               ),
                               const SizedBox(height: AppSpacing.lg),
-                              TextFormField(
-                                controller: _nameCtrl,
-                                decoration: const InputDecoration(
-                                  prefixIcon: Icon(Icons.person_outline),
-                                  hintText: 'Full Name',
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Name is required';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: AppSpacing.md),
                               TextFormField(
                                 controller: _emailCtrl,
                                 keyboardType: TextInputType.emailAddress,
@@ -151,10 +137,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   hintText: 'Email Address',
                                 ),
                                 validator: (value) {
-                                  if (value == null || value.isEmpty) {
+                                  final email = value?.trim() ?? '';
+                                  if (email.isEmpty) {
                                     return 'Email is required';
                                   }
-                                  if (!value.contains('@')) {
+                                  final validEmail = RegExp(
+                                    r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                                  ).hasMatch(email);
+                                  if (!validEmail) {
                                     return 'Enter a valid email';
                                   }
                                   return null;
@@ -163,17 +153,31 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               const SizedBox(height: AppSpacing.md),
                               TextFormField(
                                 controller: _passwordCtrl,
-                                obscureText: true,
+                                obscureText: _obscurePassword,
                                 decoration: const InputDecoration(
                                   prefixIcon: Icon(Icons.lock_outline),
                                   hintText: 'Password',
+                                ).copyWith(
+                                  suffixIcon: IconButton(
+                                    tooltip: _obscurePassword
+                                        ? 'Show password'
+                                        : 'Hide password',
+                                    onPressed: () => setState(
+                                      () => _obscurePassword = !_obscurePassword,
+                                    ),
+                                    icon: Icon(
+                                      _obscurePassword
+                                          ? Icons.visibility_outlined
+                                          : Icons.visibility_off_outlined,
+                                    ),
+                                  ),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
                                     return 'Password is required';
                                   }
-                                  if (value.length < 6) {
-                                    return 'Password is too short';
+                                  if (value.length < 8) {
+                                    return 'Use at least 8 characters';
                                   }
                                   return null;
                                 },
@@ -181,10 +185,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               const SizedBox(height: AppSpacing.md),
                               TextFormField(
                                 controller: _confirmCtrl,
-                                obscureText: true,
+                                obscureText: _obscureConfirm,
                                 decoration: const InputDecoration(
                                   prefixIcon: Icon(Icons.lock_outline),
                                   hintText: 'Confirm Password',
+                                ).copyWith(
+                                  suffixIcon: IconButton(
+                                    tooltip: _obscureConfirm
+                                        ? 'Show password'
+                                        : 'Hide password',
+                                    onPressed: () => setState(
+                                      () => _obscureConfirm = !_obscureConfirm,
+                                    ),
+                                    icon: Icon(
+                                      _obscureConfirm
+                                          ? Icons.visibility_outlined
+                                          : Icons.visibility_off_outlined,
+                                    ),
+                                  ),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {

@@ -27,8 +27,8 @@ class AppSpacing {
 /// -------------------------------
 class AppRadii {
   static const double small = 8.0;
-  static const double medium = 12.0;
-  static const double large = 20.0;
+  static const double medium = 8.0;
+  static const double large = 12.0;
 
   static const BorderRadius card =
       BorderRadius.all(Radius.circular(medium));

@@ -27,37 +27,37 @@ class AppTextStyles {
     displayLarge: GoogleFonts.poppins(
       fontSize: 48,
       fontWeight: FontWeight.w700,
-      letterSpacing: -0.8,
+      letterSpacing: 0,
       height: 1.05,
     ),
     displayMedium: GoogleFonts.poppins(
       fontSize: 40,
       fontWeight: FontWeight.w700,
-      letterSpacing: -0.6,
+      letterSpacing: 0,
       height: 1.08,
     ),
     displaySmall: GoogleFonts.poppins(
       fontSize: 34,
       fontWeight: FontWeight.w700,
-      letterSpacing: -0.4,
+      letterSpacing: 0,
       height: 1.1,
     ),
     headlineLarge: GoogleFonts.poppins(
       fontSize: 30,
       fontWeight: FontWeight.w700,
-      letterSpacing: -0.2,
+      letterSpacing: 0,
       height: 1.12,
     ),
     headlineMedium: GoogleFonts.poppins(
       fontSize: 26,
       fontWeight: FontWeight.w700,
-      letterSpacing: -0.2,
+      letterSpacing: 0,
       height: 1.18,
     ),
     headlineSmall: GoogleFonts.poppins(
       fontSize: 22,
       fontWeight: FontWeight.w600,
-      letterSpacing: -0.1,
+      letterSpacing: 0,
       height: 1.2,
     ),
     titleLarge: GoogleFonts.poppins(
@@ -93,17 +93,17 @@ class AppTextStyles {
     labelLarge: GoogleFonts.poppins(
       fontSize: 15,
       fontWeight: FontWeight.w600,
-      letterSpacing: 0.2,
+      letterSpacing: 0,
     ),
     labelMedium: GoogleFonts.poppins(
       fontSize: 13,
       fontWeight: FontWeight.w600,
-      letterSpacing: 0.2,
+      letterSpacing: 0,
     ),
     labelSmall: GoogleFonts.poppins(
       fontSize: 11,
       fontWeight: FontWeight.w600,
-      letterSpacing: 0.4,
+      letterSpacing: 0,
     ),
   );
 }
@@ -137,7 +137,7 @@ class AppTheme {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(8),
         ),
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
         textStyle: AppTextStyles.textTheme.labelLarge,
@@ -152,15 +152,15 @@ class AppTheme {
         color: AppColors.textSecondary,
       ),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(color: AppColors.border),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(color: AppColors.border),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

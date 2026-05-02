@@ -11,7 +11,7 @@ class AboutScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('About')),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: AppSpacing.screenPadding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -25,7 +25,7 @@ class AboutScreen extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'DeepShield is an AI-powered deepfake forgery detector with blockchain verification. This build uses simulated services for UI demonstration only.',
+              'DeepShield is an AI-powered deepfake forgery detector with blockchain verification. It analyzes uploaded media, generates forensic reports, and records verification status when the backend is available.',
               style: Theme.of(context)
                   .textTheme
                   .bodyMedium

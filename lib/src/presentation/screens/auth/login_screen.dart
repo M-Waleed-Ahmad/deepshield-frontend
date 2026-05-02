@@ -20,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _handledRouteMessage = false;
+  bool _obscurePassword = true;
 
   @override
   void initState() {
@@ -110,7 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.cardOverlay,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: AppRadii.card,
                           boxShadow: const [AppShadows.medium],
                           border: Border.all(color: AppColors.subtle),
                         ),
@@ -122,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               Text(
                                 'Welcome Back',
                                 style: Theme.of(context).textTheme.headlineSmall
-                                    ?.copyWith(letterSpacing: -0.2),
+                                    ?.copyWith(fontWeight: FontWeight.w700),
                               ),
                               const SizedBox(height: AppSpacing.lg),
                               TextFormField(
@@ -133,10 +134,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                   hintText: 'Email Address',
                                 ),
                                 validator: (value) {
-                                  if (value == null || value.isEmpty) {
+                                  final email = value?.trim() ?? '';
+                                  if (email.isEmpty) {
                                     return 'Email is required';
                                   }
-                                  if (!value.contains('@')) {
+                                  final validEmail = RegExp(
+                                    r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                                  ).hasMatch(email);
+                                  if (!validEmail) {
                                     return 'Enter a valid email';
                                   }
                                   return null;
@@ -145,10 +150,24 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: AppSpacing.md),
                               TextFormField(
                                 controller: _passwordCtrl,
-                                obscureText: true,
+                                obscureText: _obscurePassword,
                                 decoration: const InputDecoration(
                                   prefixIcon: Icon(Icons.lock_outline),
                                   hintText: 'Password',
+                                ).copyWith(
+                                  suffixIcon: IconButton(
+                                    tooltip: _obscurePassword
+                                        ? 'Show password'
+                                        : 'Hide password',
+                                    onPressed: () => setState(
+                                      () => _obscurePassword = !_obscurePassword,
+                                    ),
+                                    icon: Icon(
+                                      _obscurePassword
+                                          ? Icons.visibility_outlined
+                                          : Icons.visibility_off_outlined,
+                                    ),
+                                  ),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
@@ -183,7 +202,15 @@ class _LoginScreenState extends State<LoginScreen> {
                               Align(
                                 alignment: Alignment.center,
                                 child: TextButton(
-                                  onPressed: () {},
+                                  onPressed: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Password reset is not available yet. Contact support if you need help.',
+                                        ),
+                                      ),
+                                    );
+                                  },
                                   child: const Text('Forgot password?'),
                                 ),
                               ),

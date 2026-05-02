@@ -18,7 +18,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool notificationsEnabled = true;
-  bool darkMode = true;
 
   HealthStatus? _healthStatus;
   bool _isLoadingHealth = false;
@@ -48,6 +47,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _logout() async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Log out?'),
+        content: const Text('You will need to sign in again to run analyses.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Log out'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout != true) {
+      return;
+    }
+
     await ServiceLocator.authProvider.logout();
     if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(
@@ -83,23 +104,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     backgroundImage: AssetImage('assets/images/logo.png'),
                   ),
                   const SizedBox(width: AppSpacing.md),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        authProvider.userDisplayName,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        (authProvider.userEmail ?? '').isNotEmpty
-                            ? authProvider.userEmail!
-                            : 'user@deepshield.app',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          authProvider.userDisplayName,
+                          style: Theme.of(context).textTheme.titleMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 4),
+                        Text(
+                          (authProvider.userEmail ?? '').isNotEmpty
+                              ? authProvider.userEmail!
+                              : 'user@deepshield.app',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -116,15 +143,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     setState(() => notificationsEnabled = value),
               ),
             ),
-            _settingsTile(
-              title: 'Dark Mode',
-              subtitle: 'Toggle application theme',
-              trailing: Switch(
-                value: darkMode,
-                onChanged: (value) => setState(() => darkMode = value),
-              ),
-            ),
-
             const SizedBox(height: AppSpacing.lg),
             Text(
               'Backend Status',
@@ -241,7 +259,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _metaRow('AI Service', _healthStatus!.aiService),
             _metaRow(
               'Last Checked',
-              DateFormat('h:mm:ss a').format(_healthStatus!.lastChecked!),
+              _healthStatus!.lastChecked == null
+                  ? 'Unknown'
+                  : DateFormat('h:mm:ss a').format(_healthStatus!.lastChecked!),
             ),
           ],
         ],

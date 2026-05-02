@@ -24,6 +24,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
   bool reportDone = false;
   bool chainDone = false;
   bool hasError = false;
+  bool _isRunning = false;
   String? errorMessage;
 
   @override
@@ -33,6 +34,16 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
   }
 
   Future<void> _runAnalysis() async {
+    setState(() {
+      uploadingDone = false;
+      aiDone = false;
+      reportDone = false;
+      chainDone = false;
+      hasError = false;
+      errorMessage = null;
+      _isRunning = true;
+    });
+
     try {
       await Future.delayed(const Duration(milliseconds: 600));
       if (!mounted) return;
@@ -71,6 +82,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
       setState(() {
         hasError = true;
         errorMessage = displayError;
+        _isRunning = false;
       });
     }
   }
@@ -131,7 +143,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
             const SizedBox(height: AppSpacing.sm),
             Text(
               isVideo
-                  ? 'Analyzing video — this may take a moment...'
+                  ? 'Analyzing video - this may take a moment...'
                   : 'Analyzing image...',
               style: Theme.of(
                 context,
@@ -182,7 +194,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
                     icon: Icons.shield_outlined,
                     label: 'Blockchain Anchoring',
                     done: chainDone,
-                    inProgress: !chainDone,
+                    inProgress: _isRunning && !chainDone && !hasError,
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   Text(
@@ -202,9 +214,23 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: AppSpacing.sm),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Go back'),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _runAnalysis,
+                            icon: const Icon(Icons.refresh_rounded),
+                            label: const Text('Retry'),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Go back'),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ],

@@ -40,7 +40,7 @@ class _DeepShieldAppState extends State<DeepShieldApp> {
             debugShowCheckedModeBanner: false,
             theme: AppTheme.darkTheme,
             home: const Scaffold(
-              backgroundColor: Colors.white,
+              backgroundColor: AppColors.background,
               body: Center(child: CircularProgressIndicator()),
             ),
           );

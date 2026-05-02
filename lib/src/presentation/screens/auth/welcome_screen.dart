@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants.dart';
 import '../../../core/theme.dart';
-import '../../widgets/primary_button.dart';
 import '../../../routes/app_router.dart';
+import '../../widgets/primary_button.dart';
 
 /// First-time welcome screen with branding and CTA into auth.
 class WelcomeScreen extends StatelessWidget {
@@ -48,12 +48,11 @@ class WelcomeScreen extends StatelessWidget {
                   label: 'Create account',
                   onPressed: () =>
                       Navigator.pushReplacementNamed(context, AppRoutes.signup),
-                  fullWidth: true,
-                  icon: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white),
+                  icon: const Icon(Icons.person_add_alt_1_rounded),
                 ),
                 const Spacer(),
                 Text(
-                  'DeepShield – Securing Tomorrow, Today',
+                  'DeepShield - Securing Tomorrow, Today',
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall

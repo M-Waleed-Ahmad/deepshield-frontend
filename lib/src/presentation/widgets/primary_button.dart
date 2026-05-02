@@ -21,38 +21,10 @@ class PrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effectiveOnPressed = isBusy ? null : onPressed;
-    final content = isBusy
-        ? const SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
-          )
-        : Flexible(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (icon != null) ...[
-                  icon!,
-                  const SizedBox(width: 8),
-                ],
-                Flexible(
-                  child: Text(
-                    label,
-                    style: Theme.of(context)
-                        .textTheme
-                        .labelLarge
-                        ?.copyWith(color: Colors.white),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ),
-              ],
-            ),
-          );
 
     return SizedBox(
       width: fullWidth ? double.infinity : null,
+      height: 48,
       child: _AnimatedPress(
         enabled: effectiveOnPressed != null,
         child: ElevatedButton(
@@ -62,11 +34,43 @@ class PrimaryButton extends StatelessWidget {
             shadowColor: AppColors.primary.withOpacity(0.35),
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [content],
-          ),
+          child: isBusy
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Colors.white,
+                  ),
+                )
+              : FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (icon != null) ...[
+                        IconTheme(
+                          data: const IconThemeData(
+                            size: 20,
+                            color: Colors.white,
+                          ),
+                          child: icon!,
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      Text(
+                        label,
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelLarge
+                            ?.copyWith(color: Colors.white),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ],
+                  ),
+                ),
         ),
       ),
     );

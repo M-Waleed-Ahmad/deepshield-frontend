@@ -55,6 +55,7 @@ class ReportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final result = summary.result;
+    final confidencePercent = result.confidence * 100;
     return Scaffold(
       appBar: AppBar(title: const Text('Report')),
       body: SingleChildScrollView(
@@ -68,7 +69,7 @@ class ReportScreen extends StatelessWidget {
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Text(
-                    '${result.confidence.toStringAsFixed(1)}% confidence',
+                    '${confidencePercent.toStringAsFixed(1)}% confidence',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -91,7 +92,7 @@ class ReportScreen extends StatelessWidget {
                   _row('Size', summary.size),
                   _row(
                     'Analyzed on',
-                    DateFormat('MMM d, y • h:mm a').format(result.createdAt),
+                    DateFormat('MMM d, y, h:mm a').format(result.createdAt),
                   ),
                 ],
               ),
@@ -115,8 +116,8 @@ class ReportScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _row('Status', 'Anchored'),
-                  _row('Hash', result.blockchainHash),
+                  _row('Status', result.blockchainStatus ?? 'Pending'),
+                  _row('Hash', result.blockchainTxHash ?? result.blockchainHash),
                   _row(
                     'Timestamp',
                     DateFormat('MMM d, h:mm a').format(result.createdAt),

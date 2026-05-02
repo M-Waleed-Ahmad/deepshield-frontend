@@ -50,9 +50,14 @@ class AppRouter {
         if (!isLoggedIn) {
           return MaterialPageRoute(builder: (_) => const LoginScreen());
         }
-        final media = settings.arguments as DeepfakeRequest;
+        final argument = settings.arguments;
+        if (argument is! DeepfakeRequest) {
+          return _errorRoute(
+            'Select a media file before starting analysis.',
+          );
+        }
         return MaterialPageRoute(
-          builder: (_) => AnalysisProgressScreen(request: media),
+          builder: (_) => AnalysisProgressScreen(request: argument),
         );
       case AppRoutes.result:
         if (!isLoggedIn) {
@@ -83,15 +88,29 @@ class AppRouter {
         if (!isLoggedIn) {
           return MaterialPageRoute(builder: (_) => const LoginScreen());
         }
-        final summary = settings.arguments as ReportSummary;
+        final argument = settings.arguments;
+        if (argument is! ReportSummary) {
+          return _errorRoute('Report data is unavailable.');
+        }
         return MaterialPageRoute(
-          builder: (_) => ReportScreen(summary: summary),
+          builder: (_) => ReportScreen(summary: argument),
         );
       default:
-        return MaterialPageRoute(
-          builder: (_) =>
-              const Scaffold(body: Center(child: Text('Route not found'))),
-        );
+        return _errorRoute('Route not found.');
     }
+  }
+
+  static Route<dynamic> _errorRoute(String message) {
+    return MaterialPageRoute(
+      builder: (_) => Scaffold(
+        appBar: AppBar(title: const Text('DeepShield')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(message, textAlign: TextAlign.center),
+          ),
+        ),
+      ),
+    );
   }
 }

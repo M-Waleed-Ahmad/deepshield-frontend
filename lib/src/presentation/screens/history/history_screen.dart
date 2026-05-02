@@ -62,16 +62,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
-        final List<dynamic> analysesRaw = decoded is Map<String, dynamic>
-            ? (decoded['analyses'] ?? decoded['items'] ?? decoded['data'] ?? [])
-                  as List<dynamic>
-            : (decoded is List ? decoded : <dynamic>[]);
+        final raw = decoded is Map<String, dynamic>
+            ? (decoded['analyses'] ?? decoded['items'] ?? decoded['data'])
+            : decoded;
+        final List<dynamic> analysesRaw = raw is List ? raw : <dynamic>[];
 
         setState(() {
           _analyses = analysesRaw
               .whereType<Map<String, dynamic>>()
               .map((item) => Map<String, dynamic>.from(item))
-              .toList();
+              .toList()
+            ..sort((a, b) {
+              final aDate = DateTime.tryParse(a['created_at']?.toString() ?? '');
+              final bDate = DateTime.tryParse(b['created_at']?.toString() ?? '');
+              return (bDate ?? DateTime(0)).compareTo(aDate ?? DateTime(0));
+            });
           _isLoading = false;
         });
       } else {
@@ -156,10 +161,37 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
 
     if (_analyses.isEmpty) {
-      return const Center(
-        child: Text(
-          'No analyses yet. Upload your first file to get started.',
-          textAlign: TextAlign.center,
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.history_toggle_off_rounded,
+              color: AppColors.textSecondary,
+              size: 44,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'No analyses yet.',
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            const Text(
+              'Upload your first file to get started.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            ElevatedButton.icon(
+              onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                context,
+                AppRoutes.home,
+                (route) => false,
+              ),
+              icon: const Icon(Icons.upload_file_rounded),
+              label: const Text('Start analysis'),
+            ),
+          ],
         ),
       );
     }

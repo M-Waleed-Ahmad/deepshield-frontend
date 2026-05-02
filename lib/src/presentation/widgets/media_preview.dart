@@ -71,7 +71,7 @@ class MediaPreview extends StatelessWidget {
 
   Widget _squareThumb() {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppRadii.card,
       child: Container(
         width: 72,
         height: 72,

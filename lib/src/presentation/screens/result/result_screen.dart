@@ -138,7 +138,12 @@ class _ResultScreenState extends State<ResultScreen> {
       }
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final decoded = jsonDecode(response.body);
+        if (decoded is! Map<String, dynamic>) {
+          _log('poll ignored unexpected response shape');
+          return;
+        }
+        final data = decoded;
         final nextReportUrl =
             data['pdf_url'] as String? ?? data['report_url'] as String?;
         final nextBlockchainStatus = data['blockchain_status'] as String? ?? 'pending';
@@ -187,10 +192,10 @@ class _ResultScreenState extends State<ResultScreen> {
       final resp = await authenticatedGet(url, token, context);
       if (resp.statusCode != 200) return;
       final decoded = jsonDecode(resp.body);
-      final List<dynamic> analysesRaw = decoded is Map<String, dynamic>
-          ? (decoded['analyses'] ?? decoded['items'] ?? decoded['data'] ?? [])
-              as List<dynamic>
-          : (decoded is List ? decoded : <dynamic>[]);
+      final raw = decoded is Map<String, dynamic>
+          ? (decoded['analyses'] ?? decoded['items'] ?? decoded['data'])
+          : decoded;
+      final List<dynamic> analysesRaw = raw is List ? raw : <dynamic>[];
 
       final targetFilename = widget.result.filename;
       for (final item in analysesRaw.whereType<Map<String, dynamic>>()) {
@@ -295,6 +300,15 @@ class _ResultScreenState extends State<ResultScreen> {
           : const Icon(Icons.download),
       label: Text(_isDownloading ? 'Downloading...' : 'Download PDF'),
       onPressed: _isDownloading ? null : _downloadPdf,
+    );
+  }
+
+  AnalysisResult _currentResult() {
+    return widget.result.copyWith(
+      reportUrl: _reportUrl,
+      blockchainStatus: _blockchainStatus,
+      polygonUrl: _polygonUrl,
+      blockchainTxHash: _blockchainTxHash,
     );
   }
 
@@ -506,7 +520,7 @@ class _ResultScreenState extends State<ResultScreen> {
                 icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
                 onPressed: () {
                   final summary = ReportSummary(
-                    result: result,
+                    result: _currentResult(),
                     mediaType: result.mediaItem.type,
                     duration: '00:20',
                     size: '2.4 MB',
@@ -524,7 +538,7 @@ class _ResultScreenState extends State<ResultScreen> {
               PrimaryButton(
                 label: 'Verify on blockchain',
                 icon: const Icon(Icons.verified_outlined, color: Colors.white),
-                onPressed: () => _showBlockchainSheet(context, result),
+                onPressed: () => _showBlockchainSheet(context, _currentResult()),
               ),
               const SizedBox(height: AppSpacing.md),
               PrimaryButton(
@@ -657,7 +671,7 @@ class _ResultScreenState extends State<ResultScreen> {
                 final ucfW = (fusion['ucf'] as num?)?.toDouble() ?? 0.8;
                 final xcepW = (fusion['xception'] as num?)?.toDouble() ?? 0.2;
                 return Text(
-                  'UCF weight: ${(ucfW * 100).toInt()}%  |  Xception weight: ${(xcepW * 100).toInt()}%',
+                  'UCF weight: ${(ucfW * 100).toInt()}% | Xception weight: ${(xcepW * 100).toInt()}%',
                   style: Theme.of(context).textTheme.bodyMedium,
                 );
               },
@@ -709,11 +723,11 @@ class _ResultScreenState extends State<ResultScreen> {
           if (xception != null) ...[
             _metaRow(
               'Mean frame confidence',
-              '${((xception['mean'] as num?)?.toDouble() ?? 0.0) * 100.0}%',
+              '${(((xception['mean'] as num?)?.toDouble() ?? 0.0) * 100.0).toStringAsFixed(1)}%',
             ),
             _metaRow(
               'Max frame confidence',
-              '${((xception['max'] as num?)?.toDouble() ?? 0.0) * 100.0}%',
+              '${(((xception['max'] as num?)?.toDouble() ?? 0.0) * 100.0).toStringAsFixed(1)}%',
             ),
           ],
         ],
@@ -740,7 +754,7 @@ class _ResultScreenState extends State<ResultScreen> {
           const SizedBox(height: AppSpacing.sm),
           if (!result.isDuplicate && result.priorAnalyses.length <= 1)
             Text(
-              'First submission — no prior history for this file.',
+              'First submission - no prior history for this file.',
               style: Theme.of(
                 context,
               ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
@@ -764,7 +778,7 @@ class _ResultScreenState extends State<ResultScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '⚠ This file has been submitted before.',
+                      'This file has been submitted before.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Colors.orange,
                         fontWeight: FontWeight.w600,
@@ -885,7 +899,7 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   Widget _buildMetadataSection(BuildContext context, AnalysisResult result) {
-    final formatter = DateFormat('MMM d, y • h:mm a');
+    final formatter = DateFormat('MMM d, y, h:mm a');
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.md),

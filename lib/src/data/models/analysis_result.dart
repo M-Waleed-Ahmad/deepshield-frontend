@@ -25,11 +25,9 @@ class PriorAnalysis {
     return PriorAnalysis(
       id: json['id']?.toString() ?? '',
       prediction: json['prediction'] as String? ?? 'Unknown',
-      confidence: (json['confidence'] as num?)?.toDouble() ?? 0.0,
+      confidence: _normalizeConfidence(json['confidence']),
       band: json['band'] as String? ?? 'Unknown',
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String).toLocal()
-          : DateTime.now(),
+      createdAt: _parseDate(json['created_at']),
       heatmapUrl: json['heatmap_url'] as String?,
     );
   }
@@ -64,8 +62,7 @@ class AnalysisResult {
 
   final String id;
   final String prediction;
-  final double
-  confidence; // e.g. 0.812 means 81.2% or could be just used directly. We will assume 0.812 from backend -> 81.2% in UI
+  final double confidence;
   final String band;
   final String type;
   final String? heatmapUrl;
@@ -112,23 +109,30 @@ class AnalysisResult {
 
   factory AnalysisResult.fromJson(Map<String, dynamic> json, MediaItem media) {
     var analysesList = <PriorAnalysis>[];
-    if (json['prior_analyses'] != null) {
-      final list = json['prior_analyses'] as List;
-      analysesList = list.map((e) => PriorAnalysis.fromJson(e)).toList();
+    final rawPriorAnalyses = json['prior_analyses'];
+    if (rawPriorAnalyses is List) {
+      analysesList = rawPriorAnalyses
+          .whereType<Map<String, dynamic>>()
+          .map(PriorAnalysis.fromJson)
+          .toList();
     }
 
     return AnalysisResult(
       id: json['id']?.toString() ?? '',
       prediction: json['prediction'] as String? ?? 'Unknown',
-      confidence: (json['confidence'] as num?)?.toDouble() ?? 0.0,
+      confidence: _normalizeConfidence(json['confidence']),
       band: json['band'] as String? ?? 'Unknown',
       type:
           json['type'] as String? ??
           json['media_type'] as String? ??
           media.type,
       heatmapUrl: json['heatmap_url'] as String?,
-      thresholds: json['thresholds'] as Map<String, dynamic>?,
-      details: json['details'] as Map<String, dynamic>?,
+      thresholds: json['thresholds'] is Map<String, dynamic>
+          ? json['thresholds'] as Map<String, dynamic>
+          : null,
+      details: json['details'] is Map<String, dynamic>
+          ? json['details'] as Map<String, dynamic>
+          : null,
       reportUrl: json['report_url'] as String? ?? json['pdf_url'] as String?,
       blockchainStatus: json['blockchain_status'] as String?,
       polygonUrl: json['polygon_url'] as String?,
@@ -138,9 +142,7 @@ class AnalysisResult {
       filename: json['filename'] as String? ?? media.title,
       isDuplicate: json['is_duplicate'] as bool? ?? false,
       priorAnalyses: analysesList,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String).toLocal()
-          : DateTime.now(),
+      createdAt: _parseDate(json['created_at']),
       mediaItem: media,
       mediaTitle: media.title,
       mediaUrl: media.url,
@@ -158,4 +160,52 @@ class AnalysisResult {
       (index) => chars[(rand + index) % chars.length],
     ).join();
   }
+
+  AnalysisResult copyWith({
+    String? reportUrl,
+    String? blockchainStatus,
+    String? polygonUrl,
+    String? blockchainTxHash,
+  }) {
+    return AnalysisResult(
+      id: id,
+      prediction: prediction,
+      confidence: confidence,
+      band: band,
+      type: type,
+      createdAt: createdAt,
+      mediaItem: mediaItem,
+      processingTimeSeconds: processingTimeSeconds,
+      filename: filename,
+      isDuplicate: isDuplicate,
+      priorAnalyses: priorAnalyses,
+      heatmapUrl: heatmapUrl,
+      thresholds: thresholds,
+      details: details,
+      reportUrl: reportUrl ?? this.reportUrl,
+      blockchainStatus: blockchainStatus ?? this.blockchainStatus,
+      polygonUrl: polygonUrl ?? this.polygonUrl,
+      blockchainTxHash: blockchainTxHash ?? this.blockchainTxHash,
+      mediaTitle: mediaTitle,
+      mediaUrl: mediaUrl,
+      blockchainHash: blockchainTxHash ?? this.blockchainTxHash ?? blockchainHash,
+      explanation: explanation,
+    );
+  }
+}
+
+double _normalizeConfidence(dynamic value) {
+  final parsed = (value as num?)?.toDouble() ?? 0.0;
+  if (parsed.isNaN || parsed.isInfinite) {
+    return 0.0;
+  }
+  final normalized = parsed > 1 ? parsed / 100 : parsed;
+  return normalized.clamp(0.0, 1.0);
+}
+
+DateTime _parseDate(dynamic value) {
+  if (value is! String || value.trim().isEmpty) {
+    return DateTime.now();
+  }
+  return DateTime.tryParse(value)?.toLocal() ?? DateTime.now();
 }
