@@ -177,12 +177,6 @@ class _HomeTabState extends State<HomeTab> {
               ),
         ),
         actions: [
-          IconButton(
-            tooltip: 'Notifications',
-            onPressed: () => _showSnack('No new notifications.'),
-            icon: const Icon(Icons.notifications_none_rounded),
-          ),
-          const SizedBox(width: 4),
           const CircleAvatar(
             radius: 16,
             backgroundImage: AssetImage('assets/images/logo.png'),

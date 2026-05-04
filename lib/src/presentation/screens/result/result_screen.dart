@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants.dart';
 import '../../../core/environment.dart';
@@ -38,9 +38,11 @@ class _ResultScreenState extends State<ResultScreen> {
   String _analysisId = '';
   String? _blockchainTxHash;
   String? _polygonUrl;
+  int? _blockNumber;
   bool _reportReady = false;
   bool _blockchainResolved = false;
   bool _isDownloading = false;
+  bool _showHeatmap = true;
 
   void _log(String message) {
     debugPrint('[ResultScreen] $message');
@@ -56,6 +58,7 @@ class _ResultScreenState extends State<ResultScreen> {
     _blockchainStatus = result.blockchainStatus ?? 'pending';
     _blockchainTxHash = result.blockchainTxHash;
     _polygonUrl = result.polygonUrl;
+    _blockNumber = result.blockNumber;
     _reportReady = _reportUrl != null && _reportUrl!.isNotEmpty;
     _blockchainResolved =
         _blockchainStatus == 'confirmed' || _blockchainStatus == 'failed';
@@ -74,7 +77,9 @@ class _ResultScreenState extends State<ResultScreen> {
     if (!_reportReady || !_blockchainResolved) {
       _startPolling();
     } else {
-      _log('polling not started because both report and blockchain are resolved');
+      _log(
+        'polling not started because both report and blockchain are resolved',
+      );
     }
   }
 
@@ -95,7 +100,9 @@ class _ResultScreenState extends State<ResultScreen> {
       }
 
       _pollCount++;
-      _log('poll tick=$_pollCount/$_maxPolls reportReady=$_reportReady blockchainResolved=$_blockchainResolved');
+      _log(
+        'poll tick=$_pollCount/$_maxPolls reportReady=$_reportReady blockchainResolved=$_blockchainResolved',
+      );
       await _pollAnalysisStatus();
 
       if (_reportReady && _blockchainResolved) {
@@ -131,7 +138,9 @@ class _ResultScreenState extends State<ResultScreen> {
         timeout: const Duration(seconds: 8),
       );
 
-      _log('poll response status=${response.statusCode} body=${_clip(response.body)}');
+      _log(
+        'poll response status=${response.statusCode} body=${_clip(response.body)}',
+      );
 
       if (!mounted) {
         return;
@@ -146,12 +155,16 @@ class _ResultScreenState extends State<ResultScreen> {
         final data = decoded;
         final nextReportUrl =
             data['pdf_url'] as String? ?? data['report_url'] as String?;
-        final nextBlockchainStatus = data['blockchain_status'] as String? ?? 'pending';
+        final nextBlockchainStatus =
+            data['blockchain_status'] as String? ?? 'pending';
         final nextBlockchainTxHash = data['blockchain_tx_hash'] as String?;
         final nextPolygonUrl = data['polygon_url'] as String?;
-        final nextReportReady = nextReportUrl != null && nextReportUrl.isNotEmpty;
+        final nextBlockNumber = (data['block_number'] as num?)?.toInt();
+        final nextReportReady =
+            nextReportUrl != null && nextReportUrl.isNotEmpty;
         final nextBlockchainResolved =
-            nextBlockchainStatus == 'confirmed' || nextBlockchainStatus == 'failed';
+            nextBlockchainStatus == 'confirmed' ||
+            nextBlockchainStatus == 'failed';
 
         _log(
           'parsed poll data pdf_url=$nextReportUrl '
@@ -166,6 +179,7 @@ class _ResultScreenState extends State<ResultScreen> {
           _blockchainStatus = nextBlockchainStatus;
           _blockchainTxHash = nextBlockchainTxHash;
           _polygonUrl = nextPolygonUrl;
+          _blockNumber = nextBlockNumber;
           _reportReady = nextReportReady;
           _blockchainResolved = nextBlockchainResolved;
         });
@@ -185,8 +199,9 @@ class _ResultScreenState extends State<ResultScreen> {
       final token = authProvider.token;
       if (token == null || token.isEmpty) return;
 
-      final baseUrl = _resolveBaseUrl(Environment.aiServiceUrl)
-          .replaceAll(RegExp(r'/+$'), '');
+      final baseUrl = _resolveBaseUrl(
+        Environment.aiServiceUrl,
+      ).replaceAll(RegExp(r'/+$'), '');
       final url = '$baseUrl/analyses/history';
       _log('resolve id: fetching history $url');
       final resp = await authenticatedGet(url, token, context);
@@ -232,11 +247,21 @@ class _ResultScreenState extends State<ResultScreen> {
   Future<void> _downloadPdf() async {
     if (_reportUrl == null) {
       _log('download blocked: reportUrl is null');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Report is not ready yet. Wait a moment, then retry.'),
+        ),
+      );
       return;
     }
 
     if (_reportUrl!.isEmpty) {
       _log('download blocked: reportUrl is empty');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Report link is missing. Retry report status refresh.'),
+        ),
+      );
       return;
     }
 
@@ -265,7 +290,9 @@ class _ResultScreenState extends State<ResultScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Could not download the report. Please try again.'),
+            content: Text(
+              'Could not download the report. Check your connection and retry.',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -359,8 +386,8 @@ class _ResultScreenState extends State<ResultScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Report generation is taking longer than expected. '
-              'Try refreshing in a few minutes.',
+              'AI analysis is complete, but the PDF report is not ready yet. '
+              'Retry the status check in a moment.',
             ),
             const SizedBox(height: 12),
             ElevatedButton(
@@ -382,7 +409,7 @@ class _ResultScreenState extends State<ResultScreen> {
           children: [
             LinearProgressIndicator(),
             SizedBox(height: 8),
-            Text('Generating report...'),
+            Text('AI result is ready. Report generation is still pending.'),
           ],
         ),
       );
@@ -392,6 +419,12 @@ class _ResultScreenState extends State<ResultScreen> {
   Widget _buildBlockchainCard() {
     switch (_blockchainStatus) {
       case 'confirmed':
+        final txShort =
+            _blockchainTxHash != null && _blockchainTxHash!.length > 16
+            ? '${_blockchainTxHash!.substring(0, 12)}...${_blockchainTxHash!.substring(_blockchainTxHash!.length - 8)}'
+            : (_blockchainTxHash ?? '-');
+        final blockDisplay = _blockNumber?.toString() ?? '-';
+
         return _buildCard(
           title: 'Blockchain Verification',
           child: Column(
@@ -399,42 +432,105 @@ class _ResultScreenState extends State<ResultScreen> {
             children: [
               const Row(
                 children: [
-                  Icon(Icons.verified_user, color: Colors.green),
+                  Icon(Icons.verified_user, color: Colors.green, size: 18),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Report hash anchored on Polygon Amoy testnet.',
+                      'Report hash anchored on DeepShield private chain.',
+                      style: TextStyle(fontSize: 13),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              if (_blockchainTxHash != null)
-                Text(
-                  'TX: ${_shortTxHash(_blockchainTxHash)}',
-                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-                ),
               const SizedBox(height: 12),
-              if (_polygonUrl != null)
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.open_in_new, size: 16),
-                  label: const Text('View on PolygonScan'),
-                  onPressed: () async {
-                    final uri = Uri.parse(_polygonUrl!);
-                    if (await canLaunchUrl(uri)) {
-                      await launchUrl(
-                        uri,
-                        mode: LaunchMode.externalApplication,
-                      );
-                    } else if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Could not open browser.'),
-                        ),
-                      );
-                    }
-                  },
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'TX Hash: ',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      txShort,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontFamily: 'monospace',
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Text(
+                    'Block: ',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    blockDisplay,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Text(
+                    'Chain: ',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Text(
+                    'DeepShield Private Chain (EVM)',
+                    style: TextStyle(fontSize: 11, color: Colors.white70),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.copy, size: 14),
+                label: const Text(
+                  'Copy Transaction Hash',
+                  style: TextStyle(fontSize: 12),
                 ),
+                onPressed: _blockchainTxHash != null
+                    ? () {
+                        Clipboard.setData(
+                          ClipboardData(text: _blockchainTxHash!),
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Transaction hash copied'),
+                          ),
+                        );
+                      }
+                    : null,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'This transaction proves the forensic report hash was '
+                'recorded on-chain at the time shown in the PDF. '
+                'Download the report to view the full verification record.',
+                style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+              ),
             ],
           ),
         );
@@ -443,12 +539,13 @@ class _ResultScreenState extends State<ResultScreen> {
           title: 'Blockchain Verification',
           child: const Row(
             children: [
-              Icon(Icons.warning_amber, color: Colors.orange),
+              Icon(Icons.warning_amber, color: Colors.orange, size: 18),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Blockchain anchoring was unsuccessful. '
                   'The forensic report remains valid.',
+                  style: TextStyle(fontSize: 13),
                 ),
               ),
             ],
@@ -459,7 +556,11 @@ class _ResultScreenState extends State<ResultScreen> {
         if (_pollCount >= _maxPolls) {
           return _buildCard(
             title: 'Blockchain Verification',
-            child: const Text('Verification status unavailable.'),
+            child: const Text(
+              'Verification status unavailable. '
+              'Check the PDF report for anchoring details.',
+              style: TextStyle(fontSize: 13),
+            ),
           );
         }
         return _buildCard(
@@ -468,7 +569,10 @@ class _ResultScreenState extends State<ResultScreen> {
             children: [
               LinearProgressIndicator(),
               SizedBox(height: 8),
-              Text('Anchoring to Polygon blockchain...'),
+              Text(
+                'Anchoring to blockchain...',
+                style: TextStyle(fontSize: 13),
+              ),
             ],
           ),
         );
@@ -506,6 +610,10 @@ class _ResultScreenState extends State<ResultScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildVerdictHeader(context, result),
+              const SizedBox(height: AppSpacing.md),
+              _buildOutcomeExplanation(context, result),
+              const SizedBox(height: AppSpacing.md),
+              _buildStatusSummary(context),
               const SizedBox(height: AppSpacing.lg),
               _buildMainCard(context, result),
               const SizedBox(height: AppSpacing.lg),
@@ -516,29 +624,33 @@ class _ResultScreenState extends State<ResultScreen> {
               _buildForensicHistory(context, result),
               const SizedBox(height: AppSpacing.lg),
               PrimaryButton(
-                label: 'View full PDF report',
+                label: _reportReady ? 'View full PDF report' : 'Report pending',
                 icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
-                onPressed: () {
-                  final summary = ReportSummary(
-                    result: _currentResult(),
-                    mediaType: result.mediaItem.type,
-                    duration: '00:20',
-                    size: '2.4 MB',
-                    qrPlaceholderAsset: 'assets/vectors/qr_placeholder.svg',
-                    heatmapAsset: '',
-                  );
-                  Navigator.pushNamed(
-                    context,
-                    AppRoutes.report,
-                    arguments: summary,
-                  );
-                },
+                onPressed: _reportReady
+                    ? () {
+                        final summary = ReportSummary(
+                          result: _currentResult(),
+                          mediaType: result.mediaItem.type,
+                          duration: '00:20',
+                          size: '2.4 MB',
+                          qrPlaceholderAsset:
+                              'assets/vectors/qr_placeholder.svg',
+                          heatmapAsset: '',
+                        );
+                        Navigator.pushNamed(
+                          context,
+                          AppRoutes.report,
+                          arguments: summary,
+                        );
+                      }
+                    : null,
               ),
               const SizedBox(height: AppSpacing.md),
               PrimaryButton(
                 label: 'Verify on blockchain',
                 icon: const Icon(Icons.verified_outlined, color: Colors.white),
-                onPressed: () => _showBlockchainSheet(context, _currentResult()),
+                onPressed: () =>
+                    _showBlockchainSheet(context, _currentResult()),
               ),
               const SizedBox(height: AppSpacing.md),
               PrimaryButton(
@@ -564,6 +676,8 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   Widget _buildVerdictHeader(BuildContext context, AnalysisResult result) {
+    final displayConfidence = result.displayConfidence;
+    final confidence = _confidenceLabel(displayConfidence);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -582,7 +696,7 @@ class _ResultScreenState extends State<ResultScreen> {
               ),
             ),
             TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: result.confidence),
+              tween: Tween(begin: 0, end: displayConfidence),
               duration: const Duration(milliseconds: 900),
               curve: Curves.easeOutCubic,
               builder: (context, value, _) {
@@ -598,16 +712,23 @@ class _ResultScreenState extends State<ResultScreen> {
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(
-          'Band classification: ${result.band}',
+          '$confidence confidence - ${_confidenceDescription(displayConfidence)}',
           style: Theme.of(
             context,
           ).textTheme.titleSmall?.copyWith(color: AppColors.textSecondary),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'Manipulation band: ${result.band}',
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
         ),
         const SizedBox(height: AppSpacing.sm),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
           child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: result.confidence),
+            tween: Tween(begin: 0, end: displayConfidence),
             duration: const Duration(milliseconds: 900),
             curve: Curves.easeOutCubic,
             builder: (context, value, _) {
@@ -622,6 +743,85 @@ class _ResultScreenState extends State<ResultScreen> {
         ),
       ],
     );
+  }
+
+  Widget _buildOutcomeExplanation(BuildContext context, AnalysisResult result) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadii.card,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Text(
+        _verdictExplanation(result),
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusSummary(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _StatusPill(
+            label: 'Report',
+            value: _reportReady ? 'Ready' : 'Pending',
+            color: _reportReady ? Colors.green : Colors.orange,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: _StatusPill(
+            label: 'Blockchain',
+            value: _blockchainStatus == 'confirmed'
+                ? 'Verified'
+                : _blockchainStatus == 'failed'
+                ? 'Failed'
+                : 'Pending',
+            color: _blockchainStatus == 'confirmed'
+                ? Colors.green
+                : _blockchainStatus == 'failed'
+                ? Colors.orange
+                : AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _confidenceLabel(double confidence) {
+    if (confidence >= 0.8) return 'High';
+    if (confidence >= 0.5) return 'Medium';
+    return 'Low';
+  }
+
+  String _confidenceDescription(double confidence) {
+    if (confidence >= 0.8) {
+      return 'the model found a strong signal in the media.';
+    }
+    if (confidence >= 0.5) {
+      return 'the model found a noticeable signal, but review is recommended.';
+    }
+    return 'the model found weak evidence, so treat this as inconclusive.';
+  }
+
+  String _verdictExplanation(AnalysisResult result) {
+    switch (result.verdict) {
+      case Verdict.authentic:
+        return 'This media appears likely authentic. The model found a low manipulation signal.';
+      case Verdict.suspected:
+        if (result.prediction.toLowerCase().contains('ai-generated')) {
+          return 'This media is classified as AI-generated based on the AI generation signal.';
+        }
+        return 'This media shows signs of manipulation.';
+      case Verdict.inconclusive:
+        return 'The result is unclear. The score falls between the real and fake thresholds.';
+    }
   }
 
   Widget _buildMainCard(BuildContext context, AnalysisResult result) {
@@ -644,20 +844,45 @@ class _ResultScreenState extends State<ResultScreen> {
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: AppSpacing.md),
-          ClipRRect(
-            borderRadius: AppRadii.card,
-            child: Container(
-              height: 200,
-              width: double.infinity,
-              color: AppColors.border.withOpacity(0.2),
-              child: _buildHeatmapImage(result.heatmapUrl),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: AppRadii.card,
+              border: Border.all(color: AppColors.border),
+            ),
+            child: SwitchListTile.adaptive(
+              value: _showHeatmap,
+              onChanged: result.heatmapUrl == null || result.heatmapUrl!.isEmpty
+                  ? null
+                  : (value) => setState(() => _showHeatmap = value),
+              title: const Text('Show heatmap evidence'),
+              subtitle: Text(
+                result.heatmapUrl == null || result.heatmapUrl!.isEmpty
+                    ? 'No heatmap was returned for this analysis.'
+                    : 'Highlights regions the model considered during analysis.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+              ),
             ),
           ),
+          if (_showHeatmap) ...[
+            const SizedBox(height: AppSpacing.md),
+            ClipRRect(
+              borderRadius: AppRadii.card,
+              child: Container(
+                height: 200,
+                width: double.infinity,
+                color: AppColors.border.withOpacity(0.2),
+                child: _buildHeatmapImage(result.heatmapUrl),
+              ),
+            ),
+          ],
           const SizedBox(height: AppSpacing.md),
           if (result.details != null &&
               result.details!['model'] == 'ucf_and_xception') ...[
             Text(
-              'Ensemble Fusion Weights',
+              'Model Details',
               style: Theme.of(
                 context,
               ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
@@ -671,11 +896,43 @@ class _ResultScreenState extends State<ResultScreen> {
                 final ucfW = (fusion['ucf'] as num?)?.toDouble() ?? 0.8;
                 final xcepW = (fusion['xception'] as num?)?.toDouble() ?? 0.2;
                 return Text(
-                  'UCF weight: ${(ucfW * 100).toInt()}% | Xception weight: ${(xcepW * 100).toInt()}%',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  'The final score combines video-temporal and visual-frame signals (${(ucfW * 100).toInt()}% / ${(xcepW * 100).toInt()}%).',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 );
               },
             ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+          if (result.details != null) ...[
+            Text(
+              'Signals',
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            if (result.aiProbability != null)
+              _metaRow(
+                'AI-generated signal',
+                '${(result.aiProbability! * 100).toStringAsFixed(1)}%',
+              ),
+            if (result.manipulationProbability != null)
+              _metaRow(
+                'Manipulation signal',
+                '${(result.manipulationProbability! * 100).toStringAsFixed(1)}%',
+              ),
+            if (result.thresholds != null) ...[
+              _metaRow(
+                'Real threshold',
+                '${(((result.thresholds!['real'] as num?)?.toDouble() ?? 0.0) * 100).toStringAsFixed(0)}%',
+              ),
+              _metaRow(
+                'Fake threshold',
+                '${(((result.thresholds!['fake'] as num?)?.toDouble() ?? 0.0) * 100).toStringAsFixed(0)}%',
+              ),
+            ],
             const SizedBox(height: AppSpacing.md),
           ],
           Text(
@@ -1001,6 +1258,49 @@ class _ResultScreenState extends State<ResultScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: AppRadii.card,
+        border: Border.all(color: color.withOpacity(0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

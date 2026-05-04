@@ -4,11 +4,10 @@ import 'package:intl/intl.dart';
 import '../../../core/constants.dart';
 import '../../../core/theme.dart';
 import '../../../core/utils/service_locator.dart';
+import '../../../data/models/health_status.dart';
 import '../../../routes/app_router.dart';
 import '../../widgets/primary_button.dart';
-import '../../../data/models/health_status.dart';
 
-/// Settings/Profile screen with fake data and logout.
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -17,8 +16,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool notificationsEnabled = true;
-
   HealthStatus? _healthStatus;
   bool _isLoadingHealth = false;
 
@@ -37,7 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _healthStatus = status;
         _isLoadingHealth = false;
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _healthStatus = null;
@@ -65,9 +62,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
 
-    if (shouldLogout != true) {
-      return;
-    }
+    if (shouldLogout != true) return;
 
     await ServiceLocator.authProvider.logout();
     if (!mounted) return;
@@ -81,6 +76,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = ServiceLocator.authProvider;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: SingleChildScrollView(
@@ -88,15 +84,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Profile', style: Theme.of(context).textTheme.titleMedium),
+            _SectionHeader(
+              title: 'Account',
+              subtitle: 'Signed-in user for protected analysis requests.',
+            ),
             const SizedBox(height: AppSpacing.sm),
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: AppColors.cardOverlay,
-                borderRadius: AppRadii.card,
-                boxShadow: const [AppShadows.soft],
-              ),
+            _SurfaceCard(
               child: Row(
                 children: [
                   const CircleAvatar(
@@ -132,51 +125,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            Text('Preferences', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: AppSpacing.sm),
-            _settingsTile(
-              title: 'Notifications',
-              subtitle: 'Receive alerts for completed analysis',
-              trailing: Switch(
-                value: notificationsEnabled,
-                onChanged: (value) =>
-                    setState(() => notificationsEnabled = value),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'Backend Status',
-              style: Theme.of(context).textTheme.titleMedium,
+            _SectionHeader(
+              title: 'System Status',
+              subtitle: 'Backend availability controls upload and report flows.',
             ),
             const SizedBox(height: AppSpacing.sm),
             _buildHealthCard(),
-
             const SizedBox(height: AppSpacing.lg),
-            Text(
-              'About DeepShield',
-              style: Theme.of(context).textTheme.titleMedium,
+            _SectionHeader(
+              title: 'About',
+              subtitle: 'DeepShield analyzes media and reports confidence, evidence, and verification status.',
             ),
             const SizedBox(height: AppSpacing.sm),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: AppColors.cardOverlay,
-                borderRadius: AppRadii.card,
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Text(
-                'DeepShield detects AI-generated forgeries and anchors reports on-chain for verification. This build consumes the locally running FastAPI backend.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+            _SurfaceCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Use results as decision support. Report and blockchain availability depend on the backend response.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    'Open the About tab for a fuller explanation of results, limitations, and verification.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
             PrimaryButton(
               label: 'Log out',
               onPressed: _logout,
-              icon: const Icon(Icons.logout_rounded, color: Colors.white),
+              icon: const Icon(Icons.logout_rounded),
             ),
           ],
         ),
@@ -185,76 +170,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildHealthCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.cardOverlay,
-        borderRadius: AppRadii.card,
-        border: Border.all(color: AppColors.border),
-      ),
+    return _SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_isLoadingHealth)
             const Padding(
-              padding: EdgeInsets.all(16.0),
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
               child: Center(child: CircularProgressIndicator()),
             )
           else if (_healthStatus == null)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Backend unreachable',
-                  style: TextStyle(color: Colors.red),
-                ),
-                TextButton(
-                  onPressed: _fetchHealth,
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(0, 0),
-                  ),
-                  child: const Text('Retry'),
-                ),
-              ],
+            _StatusRow(
+              icon: Icons.error_outline,
+              color: Colors.redAccent,
+              title: 'Backend unreachable',
+              subtitle: 'Check that the API is running, then retry.',
+              actionLabel: 'Retry',
+              onAction: _fetchHealth,
             )
           else ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.check_circle,
-                      color: Colors.green,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Status: ${_healthStatus!.status}',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-                TextButton(
-                  onPressed: _fetchHealth,
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(0, 0),
-                  ),
-                  child: const Text('Re-check'),
-                ),
-              ],
+            _StatusRow(
+              icon: Icons.check_circle_outline,
+              color: Colors.green,
+              title: 'Backend connected',
+              subtitle: 'Status: ${_healthStatus!.status}',
+              actionLabel: 'Re-check',
+              onAction: _fetchHealth,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.md),
             _metaRow(
-              'UCF Model',
-              _healthStatus!.ucfLoaded ? 'Loaded' : 'Not Loaded',
+              'Primary model',
+              _modelStatus(
+                reported: _healthStatus!.ucfReported,
+                loaded: _healthStatus!.ucfLoaded,
+              ),
             ),
             _metaRow(
               'Xception Model',
-              _healthStatus!.xceptionLoaded ? 'Loaded' : 'Not Loaded',
+              _modelStatus(
+                reported: _healthStatus!.xceptionReported,
+                loaded: _healthStatus!.xceptionLoaded,
+              ),
             ),
             _metaRow('AI Service', _healthStatus!.aiService),
             _metaRow(
@@ -269,67 +225,138 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _settingsTile({
-    required String title,
-    required String subtitle,
-    required Widget trailing,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.cardOverlay,
-        borderRadius: AppRadii.card,
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          trailing,
-        ],
-      ),
-    );
+  String _modelStatus({required bool reported, required bool loaded}) {
+    if (!reported) {
+      return 'Not reported';
+    }
+    return loaded ? 'Loaded' : 'Not loaded';
   }
 
   Widget _metaRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 13,
-              ),
+              style: const TextStyle(color: AppColors.textSecondary),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
               textAlign: TextAlign.right,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SurfaceCard extends StatelessWidget {
+  const _SurfaceCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.cardOverlay,
+        borderRadius: AppRadii.card,
+        border: Border.all(color: AppColors.border),
+        boxShadow: const [AppShadows.soft],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _StatusRow extends StatelessWidget {
+  const _StatusRow({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: color),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        TextButton(
+          onPressed: onAction,
+          child: Text(actionLabel),
+        ),
+      ],
     );
   }
 }

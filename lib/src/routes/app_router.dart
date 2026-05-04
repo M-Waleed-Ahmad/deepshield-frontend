@@ -69,18 +69,22 @@ class AppRouter {
           result = argument;
         } else if (argument is Map<String, dynamic>) {
           final media = MediaItem(
-            id: argument['id']?.toString() ?? '',
+            id:
+                argument['analysis_id']?.toString() ??
+                argument['id']?.toString() ??
+                '',
             title: argument['filename']?.toString() ?? 'Unknown file',
             url: argument['media_url']?.toString() ?? '',
-            type: argument['type']?.toString() ?? 'image',
+            type:
+                argument['type']?.toString() ??
+                argument['media_type']?.toString() ??
+                'image',
             thumbnailAsset: 'assets/images/logo.png',
           );
           result = AnalysisResult.fromJson(argument, media);
         } else {
-          return MaterialPageRoute(
-            builder: (_) => const Scaffold(
-              body: Center(child: Text('Invalid result data')),
-            ),
+          return _errorRoute(
+            'Result data is unavailable. Return to history and reopen the analysis.',
           );
         }
         return MaterialPageRoute(builder: (_) => ResultScreen(result: result));

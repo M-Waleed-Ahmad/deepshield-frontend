@@ -1,8 +1,6 @@
 name: deepshield
-description: "A new Flutter project."
-# The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+description: "DeepShield - AI-powered deepfake detection with verification"
+publish_to: 'none'
 
 version: 1.0.0+1
 
@@ -10,6 +8,9 @@ environment:
   sdk: ^3.9.2
 
 dependencies:
+  flutter:
+    sdk: flutter
+
   google_fonts: ^6.0.0
   flutter_dotenv: ^5.0.2
   flutter_svg: ^2.0.9
@@ -21,25 +22,23 @@ dependencies:
   open_file: ^3.3.2
   url_launcher: ^6.2.0
 
-  flutter:
-    sdk: flutter
-
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-
-  # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
 
-# The following section is specific to Flutter packages.
 flutter:
-
-
   uses-material-design: true
+
   assets:
     - assets/images/
     - assets/vectors/
     - .env
 
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/logo.png"

@@ -45,7 +45,9 @@ class ReportScreen extends StatelessWidget {
       }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Could not download the report. Please try again.'),
+          content: Text(
+            'Could not download the report. Check your connection and retry.',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -55,7 +57,8 @@ class ReportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final result = summary.result;
-    final confidencePercent = result.confidence * 100;
+    final confidencePercent = result.displayConfidence * 100;
+    final reportReady = result.reportUrl != null && result.reportUrl!.isNotEmpty;
     return Scaffold(
       appBar: AppBar(title: const Text('Report')),
       body: SingleChildScrollView(
@@ -77,6 +80,17 @@ class ReportScreen extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _section(
+              context,
+              title: 'Result summary',
+              child: Text(
+                'This report summarizes the AI classification, confidence, available visual evidence, and verification status.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
             ),
             const SizedBox(height: AppSpacing.md),
             _section(
@@ -138,10 +152,20 @@ class ReportScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
+            if (!reportReady) ...[
+              Text(
+                'The PDF is not ready yet. Return to the result screen and retry the report status check.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
             PrimaryButton(
               label: 'Download report',
               icon: const Icon(Icons.download_rounded, color: Colors.white),
-              onPressed: () => _downloadReport(context),
+              onPressed: reportReady ? () => _downloadReport(context) : null,
             ),
           ],
         ),
@@ -241,6 +265,8 @@ class ReportScreen extends StatelessWidget {
               value,
               textAlign: TextAlign.right,
               style: const TextStyle(fontWeight: FontWeight.w600),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

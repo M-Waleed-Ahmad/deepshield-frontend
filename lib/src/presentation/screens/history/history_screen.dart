@@ -42,7 +42,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       if (token == null || token.isEmpty) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Not authenticated.';
+          _errorMessage = 'Your session has expired. Log in again to view history.';
         });
         return;
       }
@@ -82,7 +82,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
       } else {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Could not load history. Please try again.';
+          _errorMessage =
+              'History could not be loaded. Check the backend, then retry.';
         });
       }
     } catch (_) {
@@ -91,7 +92,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
       }
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Could not reach the server.';
+        _errorMessage =
+            'Could not reach the server. Check your connection and retry.';
       });
     }
   }
@@ -125,6 +127,53 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final parsed = (confidenceValue as num?)?.toDouble() ?? 0.0;
     final normalized = parsed <= 1 ? parsed * 100 : parsed;
     return '${normalized.toStringAsFixed(1)}%';
+  }
+
+  String _displayConfidenceFor(Map<String, dynamic> item) {
+    final prediction = item['prediction']?.toString().toLowerCase() ?? '';
+    final rawConfidence = (item['confidence'] as num?)?.toDouble() ?? 0.0;
+    final confidence = rawConfidence > 1 ? rawConfidence / 100 : rawConfidence;
+    final details = item['details'];
+
+    if (prediction.contains('ai-generated') &&
+        details is Map<String, dynamic> &&
+        details['ai_prob'] is num) {
+      return _formatConfidence(details['ai_prob']);
+    }
+
+    if (prediction.contains('authentic')) {
+      return '${((1 - confidence).clamp(0.0, 1.0) * 100).toStringAsFixed(1)}%';
+    }
+
+    return _formatConfidence(confidence);
+  }
+
+  String _statusFor(Map<String, dynamic> item) {
+    final prediction = item['prediction']?.toString() ?? '';
+    if (prediction.isEmpty || prediction == 'Unknown') {
+      return 'Pending';
+    }
+    return 'Analyzed';
+  }
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'Analyzed':
+        return Colors.green;
+      case 'Pending':
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+
+  String _statusHelp(String status) {
+    switch (status) {
+      case 'Analyzed':
+        return 'AI classification is available; report or blockchain may still be pending.';
+      case 'Pending':
+      default:
+        return 'Analysis is still processing. Pull to refresh.';
+    }
   }
 
   @override
@@ -204,12 +253,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
           final item = _analyses[index];
           final filename = item['filename']?.toString() ?? 'Unknown file';
           final label = item['prediction']?.toString() ?? 'Unknown';
-          final confidence = _formatConfidence(item['confidence']);
+          final confidence = _displayConfidenceFor(item);
           final createdAt = _formatDate(item['created_at']?.toString());
-          final mediaType = item['type']?.toString() ?? 'unknown';
-          final hasPdf =
-              (item['pdf_url']?.toString().isNotEmpty ?? false) ||
-              (item['report_url']?.toString().isNotEmpty ?? false);
+          final mediaType =
+              item['type']?.toString() ??
+              item['media_type']?.toString() ??
+              'unknown';
+          final status = _statusFor(item);
+          final statusColor = _statusColor(status);
 
           return Container(
             margin: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -234,19 +285,50 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   children: [
                     Text('Label: $label'),
                     Text('Confidence: $confidence'),
+                    Text('Status: $status'),
+                    Text(
+                      _statusHelp(status),
+                      style: const TextStyle(color: AppColors.textSecondary),
+                    ),
                     Text('Created: $createdAt'),
                     Text('Type: $mediaType'),
                   ],
                 ),
               ),
-              trailing: hasPdf
-                  ? const Icon(Icons.picture_as_pdf, color: Colors.redAccent)
-                  : null,
-              onTap: () => Navigator.pushNamed(
-                context,
-                AppRoutes.result,
-                arguments: item,
+              trailing: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.12),
+                  borderRadius: AppRadii.card,
+                  border: Border.all(color: statusColor.withOpacity(0.35)),
+                ),
+                child: Text(
+                  status,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
               ),
+              onTap: status == 'Pending'
+                  ? () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'This analysis is still processing. Pull to refresh, then reopen it.',
+                          ),
+                        ),
+                      );
+                    }
+                  : () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.result,
+                      arguments: {
+                        ...item,
+                        'type': mediaType,
+                      },
+                    ),
             ),
           );
         },

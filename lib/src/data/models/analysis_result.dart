@@ -53,6 +53,7 @@ class AnalysisResult {
     this.blockchainStatus,
     this.polygonUrl,
     this.blockchainTxHash,
+    this.blockNumber,
     // Keep old fields to prevent compilation errors temporarily
     this.mediaTitle = '',
     this.mediaUrl = '',
@@ -72,6 +73,7 @@ class AnalysisResult {
   final String? blockchainStatus;
   final String? polygonUrl;
   final String? blockchainTxHash;
+  final int? blockNumber;
   final double processingTimeSeconds;
   final String filename;
   final bool isDuplicate;
@@ -98,13 +100,38 @@ class AnalysisResult {
 
   String get verdictLabel => prediction;
 
+  double get displayConfidence {
+    final lower = prediction.toLowerCase();
+    if (lower.contains('ai-generated')) {
+      return aiProbability ?? confidence;
+    }
+    if (lower.contains('authentic')) {
+      return (1 - confidence).clamp(0.0, 1.0).toDouble();
+    }
+    return confidence;
+  }
+
+  double? get aiProbability {
+    final value = details?['ai_prob'];
+    if (value is! num) return null;
+    return _normalizeConfidence(value);
+  }
+
+  double? get manipulationProbability {
+    final value = details?['ucf_prob'];
+    if (value is num) return _normalizeConfidence(value);
+    return confidence;
+  }
+
   Color get verdictColor {
-    final b = band.toLowerCase();
-    if (b.contains('real')) return Colors.greenAccent;
-    if (b.contains('unsure')) return Colors.yellowAccent;
-    if (b.contains('likely fake')) return Colors.orangeAccent;
-    if (b.contains('strong fake')) return Colors.redAccent;
-    return Colors.amberAccent; // default fallback
+    switch (verdict) {
+      case Verdict.authentic:
+        return Colors.greenAccent;
+      case Verdict.suspected:
+        return Colors.redAccent;
+      case Verdict.inconclusive:
+        return Colors.amberAccent;
+    }
   }
 
   factory AnalysisResult.fromJson(Map<String, dynamic> json, MediaItem media) {
@@ -118,7 +145,7 @@ class AnalysisResult {
     }
 
     return AnalysisResult(
-      id: json['id']?.toString() ?? '',
+      id: json['analysis_id']?.toString() ?? json['id']?.toString() ?? '',
       prediction: json['prediction'] as String? ?? 'Unknown',
       confidence: _normalizeConfidence(json['confidence']),
       band: json['band'] as String? ?? 'Unknown',
@@ -137,6 +164,7 @@ class AnalysisResult {
       blockchainStatus: json['blockchain_status'] as String?,
       polygonUrl: json['polygon_url'] as String?,
       blockchainTxHash: json['blockchain_tx_hash'] as String?,
+      blockNumber: (json['block_number'] as num?)?.toInt(),
       processingTimeSeconds:
           (json['processing_time_seconds'] as num?)?.toDouble() ?? 0.0,
       filename: json['filename'] as String? ?? media.title,
@@ -166,6 +194,7 @@ class AnalysisResult {
     String? blockchainStatus,
     String? polygonUrl,
     String? blockchainTxHash,
+    int? blockNumber,
   }) {
     return AnalysisResult(
       id: id,
@@ -186,9 +215,11 @@ class AnalysisResult {
       blockchainStatus: blockchainStatus ?? this.blockchainStatus,
       polygonUrl: polygonUrl ?? this.polygonUrl,
       blockchainTxHash: blockchainTxHash ?? this.blockchainTxHash,
+      blockNumber: blockNumber ?? this.blockNumber,
       mediaTitle: mediaTitle,
       mediaUrl: mediaUrl,
-      blockchainHash: blockchainTxHash ?? this.blockchainTxHash ?? blockchainHash,
+      blockchainHash:
+          blockchainTxHash ?? this.blockchainTxHash ?? blockchainHash,
       explanation: explanation,
     );
   }
@@ -200,7 +231,7 @@ double _normalizeConfidence(dynamic value) {
     return 0.0;
   }
   final normalized = parsed > 1 ? parsed / 100 : parsed;
-  return normalized.clamp(0.0, 1.0);
+  return normalized.clamp(0.0, 1.0).toDouble();
 }
 
 DateTime _parseDate(dynamic value) {

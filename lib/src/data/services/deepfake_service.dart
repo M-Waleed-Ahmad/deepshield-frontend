@@ -75,7 +75,7 @@ class DeepfakeService {
       }
       if (response.statusCode != 200) {
         throw Exception(
-          'Analysis failed. Please try again. Raw: ${response.reasonPhrase}',
+          'The analysis server could not process this file right now. Retry the analysis, or re-upload the file.',
         );
       }
 
@@ -93,7 +93,7 @@ class DeepfakeService {
       return result;
     } on TimeoutException {
       throw Exception(
-        'Connection to the analysis server timed out. Please check your network and try again.',
+        'Connection to the analysis server timed out. Retry the analysis, or try a smaller file.',
       );
     } on UnauthorizedException {
       rethrow;
@@ -103,10 +103,12 @@ class DeepfakeService {
           e.toString().contains(
             'Connection to the analysis server timed out',
           ) ||
-          e.toString().contains('Analysis failed. Please try again.')) {
+          e.toString().contains('analysis server could not process')) {
         rethrow;
       }
-      throw Exception('Analysis failed. Please try again.');
+      throw Exception(
+        'Analysis could not be completed. Retry the analysis, or re-upload the file.',
+      );
     }
   }
 
